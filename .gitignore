@@ -1,0 +1,17 @@
+# Python
+venv/
+*.pyc
+__pycache__/
+
+# Django
+*.sqlite3
+.env
+
+# Node / React Native
+node_modules/
+.expo/
+.env
+
+# macOS / Windows
+.DS_Store
+Thumbs.db

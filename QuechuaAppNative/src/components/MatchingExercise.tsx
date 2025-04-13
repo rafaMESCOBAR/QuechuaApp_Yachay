@@ -1,0 +1,344 @@
+// src/components/MatchingExercise.tsx
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SpeechService } from '../services/speechService';
+
+// Interfaz para los pares de palabras
+interface MatchingPair {
+  id: number;
+  spanish: string;
+  quechua: string;
+}
+
+// Interfaz para las propiedades del componente
+interface MatchingExerciseProps {
+  question: string;
+  pairs: MatchingPair[];
+  onComplete: (isCorrect: boolean, points: number) => void;
+  difficulty: number;
+}
+
+export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
+  question,
+  pairs,
+  onComplete,
+  difficulty = 1
+}) => {
+  // Estado para las palabras seleccionadas
+  const [selectedSpanish, setSelectedSpanish] = useState<MatchingPair | null>(null);
+  const [selectedQuechua, setSelectedQuechua] = useState<MatchingPair | null>(null);
+  
+  // Estado para controlar el resultado
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [points, setPoints] = useState(15 * difficulty);
+  const [attempts, setAttempts] = useState(0);
+  
+  // Crear versión realmente mezclada de las palabras quechua
+  const [quechuaElements, setQuechuaElements] = useState<React.ReactNode[]>([]);
+  
+  // Inicializar y mezclar las filas de quechua
+  useEffect(() => {
+    // Crear elementos de quechua
+    const elements = pairs.map(word => (
+      <View key={`quechua-${word.id}`} style={styles.quechuaContainer}>
+        <TouchableOpacity
+          style={[
+            styles.wordButton,
+            styles.quechuaWord,
+            selectedQuechua?.id === word.id && styles.selectedWord
+          ]}
+          onPress={() => handleSelectQuechua(word)}
+          disabled={isCorrect !== null}
+        >
+          <Text style={styles.wordText}>{word.quechua}</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.audioButton}
+          onPress={() => SpeechService.speakWord(word.quechua)}
+        >
+          <Ionicons name="volume-high" size={16} color="#2196F3" />
+        </TouchableOpacity>
+      </View>
+    ));
+    
+    // Mezclar los elementos (no solo los datos)
+    const shuffledElements = [...elements].sort(() => Math.random() - 0.5);
+    setQuechuaElements(shuffledElements);
+  }, [pairs, selectedQuechua, isCorrect]);
+  
+  // Resetear selecciones y resultados
+  const resetSelections = () => {
+    setSelectedSpanish(null);
+    setSelectedQuechua(null);
+    setIsCorrect(null);
+  };
+  
+  // Manejar selección de palabra en español
+  const handleSelectSpanish = (word: MatchingPair) => {
+    // Si ya hay un resultado, no permitir nuevas selecciones
+    if (isCorrect !== null) return;
+    
+    // Marcar como seleccionada
+    setSelectedSpanish(word);
+    
+    // Reproducir audio
+    SpeechService.speakWord(word.spanish);
+    
+    // Si ya hay una palabra quechua seleccionada, verificar el par
+    if (selectedQuechua) {
+      verifyMatch(word, selectedQuechua);
+    }
+  };
+  
+  // Manejar selección de palabra en quechua
+  const handleSelectQuechua = (word: MatchingPair) => {
+    // Si ya hay un resultado, no permitir nuevas selecciones
+    if (isCorrect !== null) return;
+    
+    // Marcar como seleccionada
+    setSelectedQuechua(word);
+    
+    // Reproducir audio
+    SpeechService.speakWord(word.quechua);
+    
+    // Si ya hay una palabra en español seleccionada, verificar el par
+    if (selectedSpanish) {
+      verifyMatch(selectedSpanish, word);
+    }
+  };
+  
+  // Verificar si el par seleccionado es correcto
+  const verifyMatch = (spanishWord: MatchingPair, quechuaWord: MatchingPair) => {
+    // Incrementar intentos
+    setAttempts(prev => prev + 1);
+    
+    // Verificar si el ID coincide (mismo par)
+    const matchResult = spanishWord.id === quechuaWord.id;
+    setIsCorrect(matchResult);
+    
+    // Actualizar puntos
+    if (!matchResult && points > 5) {
+      setPoints(prev => Math.max(5, prev - 5));
+    }
+    
+    // Mostrar feedback después de un tiempo y continuar
+    setTimeout(() => {
+      if (matchResult) {
+        onComplete(true, points);
+      } else {
+        resetSelections();
+      }
+    }, 1500);
+  };
+  
+  // Continuar sin seleccionar (solo ver)
+  const handleContinue = () => {
+    onComplete(false, 0);
+  };
+  
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.questionText}>{question}</Text>
+      
+      <Text style={styles.instructionText}>
+        Selecciona una palabra en español y su traducción en quechua para verificar si son correctas.
+      </Text>
+      
+      <View style={styles.columnsContainer}>
+        {/* Columna de palabras en español (ordenadas) */}
+        <View style={styles.column}>
+          <Text style={styles.columnTitle}>Español</Text>
+          <View style={styles.wordsColumn}>
+            {pairs.map(word => (
+              <TouchableOpacity
+                key={`spanish-${word.id}`}
+                style={[
+                  styles.wordButton,
+                  styles.spanishWord,
+                  selectedSpanish?.id === word.id && styles.selectedWord
+                ]}
+                onPress={() => handleSelectSpanish(word)}
+                disabled={isCorrect !== null}
+              >
+                <Text style={styles.wordText}>{word.spanish}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        
+        {/* Columna de palabras en quechua (mezcladas) */}
+        <View style={styles.column}>
+          <Text style={styles.columnTitle}>Quechua</Text>
+          <View style={styles.wordsColumn}>
+            {quechuaElements}
+          </View>
+        </View>
+      </View>
+      
+      {/* Mostrar resultado de la verificación */}
+      {isCorrect !== null && (
+        <View style={[
+          styles.resultContainer,
+          isCorrect ? styles.correctResult : styles.incorrectResult
+        ]}>
+          <Text style={styles.resultText}>
+            {isCorrect 
+              ? `¡Correcto! "${selectedSpanish?.spanish}" se dice "${selectedQuechua?.quechua}" en quechua.` 
+              : `Incorrecto. "${selectedSpanish?.spanish}" no es "${selectedQuechua?.quechua}" en quechua.`}
+          </Text>
+        </View>
+      )}
+      
+      {/* Botón para verificar o continuar */}
+      {(selectedSpanish && selectedQuechua && isCorrect === null) ? (
+        <TouchableOpacity
+          style={styles.verifyButton}
+          onPress={() => verifyMatch(selectedSpanish, selectedQuechua)}
+        >
+          <Text style={styles.buttonText}>Verificar</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={handleContinue}
+        >
+          <Text style={styles.buttonText}>Continuar</Text>
+        </TouchableOpacity>
+      )}
+      
+      {/* Espacio adicional para asegurar que los botones no queden ocultos */}
+      <View style={styles.bottomSpace} />
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  questionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  instructionText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  columnsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  column: {
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  columnTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  wordsColumn: {
+    alignItems: 'stretch',
+  },
+  wordButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginVertical: 5,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spanishWord: {
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  quechuaWord: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FFCCBC',
+    flex: 1,
+  },
+  selectedWord: {
+    borderColor: '#FF0000',
+    borderWidth: 2,
+    backgroundColor: '#FFEBEE',
+  },
+  wordText: {
+    fontSize: 16,
+  },
+  quechuaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  audioButton: {
+    padding: 8,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+    marginLeft: 5,
+  },
+  resultContainer: {
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 15,
+    marginHorizontal: 10,
+  },
+  correctResult: {
+    backgroundColor: '#E8F5E9',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  incorrectResult: {
+    backgroundColor: '#FFEBEE',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F44336',
+  },
+  resultText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  verifyButton: {
+    backgroundColor: '#FF0000',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  continueButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  bottomSpace: {
+    height: 100, // Espacio extra para evitar que los botones del modal oculten contenido
+  },
+});
