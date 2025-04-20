@@ -15,3 +15,5 @@ node_modules/
 # macOS / Windows
 .DS_Store
 Thumbs.db
+# Firebase
+backend/firebase-credentials.json

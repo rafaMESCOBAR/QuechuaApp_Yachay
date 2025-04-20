@@ -36,3 +36,6 @@ db.sqlite3
 *.swo
 .project
 .classpath
+
+# Firebase
+backend/firebase-credentials.json
