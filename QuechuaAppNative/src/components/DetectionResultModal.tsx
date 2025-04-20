@@ -12,10 +12,9 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  SafeAreaView,
-  KeyboardAvoidingView,
   Platform,
-  Dimensions
+  Dimensions,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DetectionResponse } from '../types/api';
@@ -374,90 +373,94 @@ export const DetectionResultModal = ({ isVisible, onClose, results, imagePath }:
       setIsLoading(false);
     }
   };
-
-  // Modifica la función handleExerciseComplete para incluir gamificación
-  const handleExerciseComplete = (isCorrect: boolean, points: number) => {
-    setTimerActive(false); // Detener temporizador
-    const currentExercise = exercises[currentExerciseIndex];
-    const metadata = currentExercise.metadata || {};
+  
+  // Función handleExerciseComplete
+const handleExerciseComplete = (isCorrect: boolean, points: number) => {
+  setTimerActive(false); // Detener temporizador
+  const currentExercise = exercises[currentExerciseIndex];
+  const metadata = currentExercise.metadata || {};
+  
+  let earnedPoints = 0;
+  
+  if (isCorrect) {
+    // Puntos base
+    earnedPoints = points;
     
-    let earnedPoints = 0;
-    
-    if (isCorrect) {
-      // Puntos base
-      earnedPoints = points;
-      
-      // Bonus por tiempo (si queda tiempo y hay bonus definido)
-      if (timeLeft !== null && timeLeft > 0 && metadata.time_bonus) {
-        const timeBonus = metadata.time_bonus;
-        earnedPoints += timeBonus;
-      }
-      
-      // Bonus por racha (si hay bonus definido)
-      setStreakCount(prev => prev + 1);
-      if (streakCount >= 2 && metadata.streak_bonus) {
-        earnedPoints += metadata.streak_bonus;
-      }
-      
-      // Bonus por combo (para ejercicios matching)
-      setComboCount(prev => prev + 1);
-      if (comboCount > 0 && metadata.combo_bonus) {
-        earnedPoints += metadata.combo_bonus * comboCount;
-      }
-      
-      // Penalización por usar pista
-      if (usedHint && metadata.hint_penalty) {
-        earnedPoints = Math.max(0, earnedPoints + metadata.hint_penalty);
-      }
-      
-      // Seleccionar feedback aleatorio
-      if (metadata.feedback_correct && metadata.feedback_correct.length > 0) {
-        const randomIndex = Math.floor(Math.random() * metadata.feedback_correct.length);
-        setFeedback(metadata.feedback_correct[randomIndex]);
-      } else {
-        setFeedback(`¡Correcto! +${earnedPoints} puntos`);
-      }
-    } else {
-      // Penalización por respuesta incorrecta
-      const penalty = metadata.penalty || 0;
-      if (penalty < 0) {
-        earnedPoints = penalty;
-      }
-      
-      // Reiniciar racha y combo
-      setStreakCount(0);
-      setComboCount(0);
-      
-      // Seleccionar feedback aleatorio
-      if (metadata.feedback_incorrect && metadata.feedback_incorrect.length > 0) {
-        const randomIndex = Math.floor(Math.random() * metadata.feedback_incorrect.length);
-        setFeedback(metadata.feedback_incorrect[randomIndex]);
-      } else {
-        setFeedback(`Incorrecto. La respuesta es: ${currentExercise.answer}`);
-      }
+    // Bonus por tiempo (si queda tiempo y hay bonus definido)
+    if (timeLeft !== null && timeLeft > 0 && metadata.time_bonus) {
+      const timeBonus = metadata.time_bonus;
+      earnedPoints += timeBonus;
     }
     
-    // Actualizar puntos totales
-    setTotalPoints(prev => Math.max(0, prev + earnedPoints));
+    // Bonus por racha (si hay bonus definido)
+    setStreakCount(prev => prev + 1);
+    if (streakCount >= 2 && metadata.streak_bonus) {
+      earnedPoints += metadata.streak_bonus;
+    }
     
-    // Mostrar breve retroalimentación antes de continuar
-    setTimeout(() => {
-      // Resetear la respuesta del usuario para el siguiente ejercicio
-      setUserAnswer('');
-      setUsedHint(false);
-      setShowHint(false);
-      setFeedback("");
-      
-      // Si es el último ejercicio, mostrar resumen
-      if (currentExerciseIndex >= exercises.length - 1) {
-        setShowPointsSummary(true);
-      } else {
-        // Pasar al siguiente ejercicio
-        setCurrentExerciseIndex(prev => prev + 1);
-      }
-    }, 2000);
-  };
-
+    // Bonus por combo (para ejercicios matching)
+    setComboCount(prev => prev + 1);
+    if (comboCount > 0 && metadata.combo_bonus) {
+      earnedPoints += metadata.combo_bonus * comboCount;
+    }
+    
+    // Penalización por usar pista
+    if (usedHint && metadata.hint_penalty) {
+      earnedPoints = Math.max(0, earnedPoints + metadata.hint_penalty);
+    }
+    
+    // Seleccionar feedback aleatorio
+    if (metadata.feedback_correct && metadata.feedback_correct.length > 0) {
+      const randomIndex = Math.floor(Math.random() * metadata.feedback_correct.length);
+      setFeedback(metadata.feedback_correct[randomIndex]);
+    } else {
+      setFeedback(`¡Correcto! +${earnedPoints} puntos`);
+    }
+  } else {
+    // Penalización por respuesta incorrecta
+    const penalty = metadata.penalty || 0;
+    if (penalty < 0) {
+      earnedPoints = penalty;
+    }
+    
+    // Reiniciar racha y combo
+    setStreakCount(0);
+    setComboCount(0);
+    
+    // Seleccionar feedback aleatorio
+    if (metadata.feedback_incorrect && metadata.feedback_incorrect.length > 0) {
+      const randomIndex = Math.floor(Math.random() * metadata.feedback_incorrect.length);
+      setFeedback(metadata.feedback_incorrect[randomIndex]);
+    } else {
+      setFeedback(`Incorrecto. La respuesta es: ${currentExercise.answer}`);
+    }
+  }
+  
+  // Actualizar puntos totales
+  setTotalPoints(prev => Math.max(0, prev + earnedPoints));
+  
+  // Mostrar breve retroalimentación antes de continuar
+  setTimeout(() => {
+    // Resetear la respuesta del usuario para el siguiente ejercicio
+    setUserAnswer('');
+    setUsedHint(false);
+    setShowHint(false);
+    setFeedback("");
+    
+    // CORRECCIÓN: Comprobar explícitamente con el índice actual
+    // y el tamaño del array en el momento de la decisión
+    const isLastExercise = currentExerciseIndex >= exercises.length - 1;
+    
+    if (isLastExercise) {
+      // Es el último ejercicio, mostrar resumen
+      setShowPointsSummary(true);
+    } else {
+      // Avanzar al siguiente ejercicio de forma segura
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+    }
+  }, 2000);
+};
+   
   const handleFinishExercises = () => {
     setShowExercises(false);
     setShowPointsSummary(false);
@@ -468,159 +471,222 @@ export const DetectionResultModal = ({ isVisible, onClose, results, imagePath }:
     setFeedback("");
   };
 
-  const renderExercise = () => {
-    if (exercises.length === 0 || currentExerciseIndex >= exercises.length) {
-      return null;
-    }
-  
-    const exercise = exercises[currentExerciseIndex];
-    const metadata = exercise.metadata || {};
-    
+  // Función renderExercise
+const renderExercise = () => {
+  // Verificación más estricta del índice
+  if (exercises.length === 0 || currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+    console.error(`Índice inválido: ${currentExerciseIndex}, Total: ${exercises.length}`);
     return (
-      <View style={styles.exerciseContainer}>
-        {/* Timer y Contador de puntos */}
-        {timeLeft !== null && (
-          <View style={styles.gameHeader}>
-            <View style={styles.timerContainer}>
-              <Ionicons name="timer-outline" size={18} color="#FF0000" />
-              <Text style={[
-                styles.timerText,
-                timeLeft < 10 && styles.timerWarning
-              ]}>
-                {timeLeft}s
-              </Text>
-            </View>
-            
-            <View style={styles.pointsContainer}>
-              <Ionicons name="star" size={18} color="#FFD700" />
-              <Text style={styles.pointsText}>{totalPoints}</Text>
-            </View>
-            
-            {streakCount > 1 && (
-              <View style={styles.streakContainer}>
-                <Ionicons name="flame" size={18} color="#FF4500" />
-                <Text style={styles.streakText}>x{streakCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
-        
-        {/* Pregunta del ejercicio */}
-        <Text style={styles.questionText}>{exercise.question}</Text>
-        
-        {/* Feedback si está disponible */}
-        {feedback !== "" && (
-          <View style={[
-            styles.feedbackContainer,
-            feedback.includes("¡") || feedback.includes("Correcto") 
-              ? styles.correctFeedback 
-              : styles.incorrectFeedback
-          ]}>
-            <Text style={styles.feedbackText}>{feedback}</Text>
-          </View>
-        )}
-        
-        {/* Renderizar contenido según el tipo de ejercicio */}
-        {feedback === "" && (
-          <>
-            {exercise.type === 'multiple_choice' && (
-              <ExerciseMultipleChoice
-                question={exercise.question}
-                options={getMultipleChoiceOptions(exercise)}
-                onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 10)}
-                difficulty={exercise.difficulty}
-              />
-            )}
-            
-            {exercise.type === 'fill_blanks' && (
-              <View style={styles.fillBlanksContainer}>
-                <TouchableOpacity
-                  style={styles.listenButton}
-                  onPress={() => SpeechService.speakWord(exercise.answer)}
-                >
-                  <Ionicons name="volume-high" size={24} color="white" />
-                  <Text style={styles.listenButtonText}>Escuchar pronunciación</Text>
-                </TouchableOpacity>
-                
-                <TextInput
-                  style={styles.fillBlanksInput}
-                  placeholder="Escribe tu respuesta"
-                  onChangeText={setUserAnswer}
-                  value={userAnswer}
-                />
-                
-                {!showHint && exercise.distractors?.hint && (
-                  <TouchableOpacity
-                    style={styles.hintButton}
-                    onPress={handleShowHint}
-                  >
-                    <Text style={styles.hintButtonText}>
-                      Ver pista {metadata.hint_penalty ? `(${metadata.hint_penalty} pts)` : ''}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                
-                {showHint && exercise.distractors?.hint && (
-                  <Text style={styles.hintText}>Pista: {exercise.distractors.hint}</Text>
-                )}
-                
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={() => handleExerciseComplete(
-                    userAnswer.toLowerCase() === exercise.answer.toLowerCase(), 
-                    exercise.points || 15
-                  )}
-                >
-                  <Text style={styles.buttonText}>Verificar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            
-            {exercise.type === 'pronunciation' && (
-              <PronunciationExercise
-                question={exercise.question}
-                wordToProunounce={exercise.answer}
-                spanishTranslation={exercise.object_translation.spanish}
-                phoneticGuide={exercise.distractors?.phonetic_guide}
-                onComplete={(isCorrect, earnedPoints) => handleExerciseComplete(isCorrect, earnedPoints)}
-                difficulty={exercise.difficulty}
-              />
-            )}
-            
-            {exercise.type === 'matching' && exercise.distractors?.pairs && Array.isArray(exercise.distractors.pairs) && (
-              <MatchingExercise
-                question={exercise.question}
-                pairs={exercise.distractors.pairs.map((pair, index) => ({
-                  id: index + 1,
-                  spanish: pair.spanish,
-                  quechua: pair.quechua
-                }))}
-                onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 15)}
-                difficulty={exercise.difficulty}
-                />
-            )}
-
-            {exercise.type === 'anagram' && (
-              <AnagramExercise
-                question={exercise.question}
-                correctWord={exercise.answer}
-                spanishTranslation={
-                  typeof metadata === 'object' && 
-                  metadata !== null && 
-                  'spanish_translation' in metadata ? 
-                  metadata.spanish_translation as string : 
-                  exercise.object_translation.spanish
-                }
-                onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 20)}
-                difficulty={exercise.difficulty}
-              />
-            )}
-          </>
-        )}
+      <View style={styles.noExerciseContainer}>
+        <Text style={styles.noExerciseText}>No se pudo cargar el ejercicio</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => {
+            if (exercises.length > 0) {
+              setCurrentExerciseIndex(0); // Reiniciar al primer ejercicio
+            } else {
+              handleClose(); // Cerrar modal si no hay ejercicios
+            }
+          }}
+        >
+          <Text style={styles.retryButtonText}>
+            {exercises.length > 0 ? "Reiniciar" : "Cerrar"}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
-  };
+  }
 
+  // Obtener el ejercicio actual y garantizar que existe
+  const exercise = exercises[currentExerciseIndex];
+  if (!exercise) {
+    console.error("Ejercicio indefinido en índice:", currentExerciseIndex);
+    return null;
+  }
+
+  // Obtener metadata de forma segura
+  const metadata = exercise.metadata || {};
+  
+  // Añadir un log detallado para depuración
+  console.log(`Renderizando ejercicio tipo: ${exercise.type}, índice: ${currentExerciseIndex}, props:`, {
+    question: !!exercise.question,
+    answer: !!exercise.answer,
+    distractors: !!exercise.distractors,
+    object_translation: !!exercise.object_translation,
+    feedback: feedback
+  });
+  
+  return (
+    <View style={styles.exerciseContainer}>
+      {/* Timer y Contador de puntos */}
+      {timeLeft !== null && (
+        <View style={styles.gameHeader}>
+          <View style={styles.timerContainer}>
+            <Ionicons name="timer-outline" size={18} color="#FF0000" />
+            <Text style={[
+              styles.timerText,
+              timeLeft < 10 && styles.timerWarning
+            ]}>
+              {timeLeft}s
+            </Text>
+          </View>
+          
+          <View style={styles.pointsContainer}>
+            <Ionicons name="star" size={18} color="#FFD700" />
+            <Text style={styles.pointsText}>{totalPoints}</Text>
+          </View>
+          
+          {streakCount > 1 && (
+            <View style={styles.streakContainer}>
+              <Ionicons name="flame" size={18} color="#FF4500" />
+              <Text style={styles.streakText}>x{streakCount}</Text>
+            </View>
+          )}
+        </View>
+      )}
+      
+      {/* Pregunta del ejercicio - Siempre mostrar */}
+      {exercise.question && (
+        <Text style={styles.questionText}>{exercise.question}</Text>
+      )}
+      
+      {/* Feedback si está disponible */}
+      {feedback !== "" && (
+        <View style={[
+          styles.feedbackContainer,
+          feedback.includes("¡") || feedback.includes("Correcto") 
+            ? styles.correctFeedback 
+            : styles.incorrectFeedback
+        ]}>
+          <Text style={styles.feedbackText}>{feedback}</Text>
+        </View>
+      )}
+      
+      {/* Renderizar contenido según el tipo de ejercicio SOLO si no hay feedback */}
+      {feedback === "" && (
+        <>
+          {exercise.type === 'multiple_choice' && exercise.answer && (
+            <ExerciseMultipleChoice
+              question={exercise.question}
+              options={getMultipleChoiceOptions(exercise)}
+              onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 10)}
+              difficulty={exercise.difficulty}
+            />
+          )}
+          
+          {exercise.type === 'fill_blanks' && exercise.answer && (
+            <View style={styles.fillBlanksContainer}>
+              <TouchableOpacity
+                style={styles.listenButton}
+                onPress={() => SpeechService.speakWord(exercise.answer)}
+              >
+                <Ionicons name="volume-high" size={24} color="white" />
+                <Text style={styles.listenButtonText}>Escuchar pronunciación</Text>
+              </TouchableOpacity>
+              
+              <TextInput
+                style={styles.fillBlanksInput}
+                placeholder="Escribe tu respuesta"
+                onChangeText={setUserAnswer}
+                value={userAnswer}
+              />
+              
+              {!showHint && exercise.distractors?.hint && (
+                <TouchableOpacity
+                  style={styles.hintButton}
+                  onPress={handleShowHint}
+                >
+                  <Text style={styles.hintButtonText}>
+                    Ver pista {metadata.hint_penalty ? `(${metadata.hint_penalty} pts)` : ''}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {showHint && exercise.distractors?.hint && (
+                <Text style={styles.hintText}>Pista: {exercise.distractors.hint}</Text>
+              )}
+              
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={() => handleExerciseComplete(
+                  userAnswer.toLowerCase() === exercise.answer.toLowerCase(), 
+                  exercise.points || 15
+                )}
+              >
+                <Text style={styles.buttonText}>Verificar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {exercise.type === 'pronunciation' && exercise.answer && exercise.object_translation && (
+            <PronunciationExercise
+              question={exercise.question}
+              wordToProunounce={exercise.answer}
+              spanishTranslation={exercise.object_translation.spanish}
+              phoneticGuide={exercise.distractors?.phonetic_guide}
+              onComplete={(isCorrect, earnedPoints) => handleExerciseComplete(isCorrect, earnedPoints)}
+              difficulty={exercise.difficulty}
+            />
+          )}
+          
+          {exercise.type === 'matching' && exercise.distractors?.pairs && 
+            Array.isArray(exercise.distractors.pairs) && exercise.distractors.pairs.length > 0 && (
+            <MatchingExercise
+              question={exercise.question}
+              pairs={exercise.distractors.pairs.map((pair, index) => ({
+                id: index + 1,
+                spanish: pair.spanish || "",
+                quechua: pair.quechua || ""
+              }))}
+              onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 15)}
+              difficulty={exercise.difficulty}
+            />
+          )}
+
+          {exercise.type === 'anagram' && exercise.answer && (
+            <AnagramExercise
+              question={exercise.question}
+              correctWord={exercise.answer}
+              spanishTranslation={
+                typeof metadata === 'object' && 
+                metadata !== null && 
+                'spanish_translation' in metadata ? 
+                metadata.spanish_translation as string : 
+                (exercise.object_translation?.spanish || "")
+              }
+              onComplete={(isCorrect) => handleExerciseComplete(isCorrect, exercise.points || 20)}
+              difficulty={exercise.difficulty}
+            />
+          )}
+          
+          {/* Fallback para tipos de ejercicio no implementados o datos incompletos */}
+          {(!['multiple_choice', 'fill_blanks', 'pronunciation', 'matching', 'anagram'].includes(exercise.type) ||
+            !exercise.answer || !exercise.question) && (
+            <View style={styles.fallbackContainer}>
+              <Text style={styles.fallbackText}>
+                {!exercise.type || !['multiple_choice', 'fill_blanks', 'pronunciation', 'matching', 'anagram'].includes(exercise.type) 
+                  ? `Tipo de ejercicio no soportado: ${exercise.type || "desconocido"}`
+                  : "Faltan datos necesarios para mostrar este ejercicio"}
+              </Text>
+              <TouchableOpacity
+                style={styles.skipButton}
+                onPress={() => {
+                  if (currentExerciseIndex >= exercises.length - 1) {
+                    setShowPointsSummary(true);
+                  } else {
+                    setCurrentExerciseIndex(prev => prev + 1);
+                  }
+                }}
+              >
+                <Text style={styles.skipButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
   // Función principal de renderizado para el contenido del modal
   const renderContent = () => {
     if (isLoading) {
@@ -707,32 +773,32 @@ export const DetectionResultModal = ({ isVisible, onClose, results, imagePath }:
           </View>
         )}
 
-<ScrollView style={styles.translationsContainer}>
-  {results?.objects.map((object, index) => (
-    <View key={index} style={styles.translationRow}>
-      <View style={styles.translationTextContainer}>
-        <Text style={styles.spanishText}>{object.spanish}</Text>
-        <Text style={styles.quechuaText}>{object.quechua}</Text>
-      </View>
-      <View style={styles.translationButtonsContainer}>
-        <TouchableOpacity 
-          style={styles.audioButton}
-          onPress={() => SpeechService.speakWord(object.spanish)}
-        >
-          <Ionicons name="volume-medium" size={18} color="#2196F3" />
-          <Text style={styles.audioButtonLabel}>ES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.audioButton}
-          onPress={() => SpeechService.speakWord(object.quechua)}
-        >
-          <Ionicons name="volume-high" size={18} color="#FF5722" />
-          <Text style={styles.audioButtonLabel}>QU</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  ))}
-</ScrollView>
+        <ScrollView style={styles.translationsContainer}>
+          {results?.objects.map((object, index) => (
+            <View key={index} style={styles.translationRow}>
+              <View style={styles.translationTextContainer}>
+                <Text style={styles.spanishText}>{object.spanish}</Text>
+                <Text style={styles.quechuaText}>{object.quechua}</Text>
+              </View>
+              <View style={styles.translationButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.audioButton}
+                  onPress={() => SpeechService.speakWord(object.spanish)}
+                >
+                  <Ionicons name="volume-medium" size={18} color="#2196F3" />
+                  <Text style={styles.audioButtonLabel}>ES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.audioButton}
+                  onPress={() => SpeechService.speakWord(object.quechua)}
+                >
+                  <Ionicons name="volume-high" size={18} color="#FF5722" />
+                  <Text style={styles.audioButtonLabel}>QU</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
 
         <TouchableOpacity 
           style={styles.learnButton}
@@ -747,66 +813,57 @@ export const DetectionResultModal = ({ isVisible, onClose, results, imagePath }:
   // Componente principal
   return (
     <Modal
-      animationType="slide"
-      transparent={true}
+      animationType="fade"
+      transparent={false}
       visible={isVisible}
       onRequestClose={handleClose}
+      statusBarTranslucent={true}
     >
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoidView}
-        >
-          <View style={styles.contentBox}>
-            <ScrollView
-              ref={scrollViewRef}
-              contentContainerStyle={{
-                paddingBottom: 100, // Espacio extra en la parte inferior
-                minHeight: Math.min(contentHeight, SCREEN_HEIGHT * 0.7),
-              }}
-              onContentSizeChange={(_, height) => setContentHeight(height)}
-              showsVerticalScrollIndicator={true}
+      <View style={styles.fullScreenContainer}>
+        <View style={styles.modalContent}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: 40
+            }}
+            onContentSizeChange={(_, height) => setContentHeight(height)}
+            showsVerticalScrollIndicator={true}
+          >
+            {renderContent()}
+          </ScrollView>
+          
+          {!showExercises && (
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={handleClose}
             >
-              {renderContent()}
-            </ScrollView>
-            
-            {!showExercises && (
-              <TouchableOpacity 
-                style={styles.closeButton} 
-                onPress={handleClose}
-              >
-                <Ionicons name="close" size={32} color="black" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+              <Ionicons name="close" size={32} color="black" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     </Modal>
   );
 };
 
 // Estilos para el componente
 const styles = StyleSheet.create({
-  container: {
+  fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  keyboardAvoidView: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  contentBox: {
     backgroundColor: 'white',
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: SCREEN_HEIGHT * 0.9,
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'white',
   },
   defaultContent: {
     alignItems: 'center',
     width: '100%',
+    paddingTop: 40,
+    paddingBottom: 20,
   },
   logoText: {
     fontSize: 24,
@@ -815,7 +872,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   imageContainer: {
-    width: '100%',
+    width: '90%',
     aspectRatio: 1,
     marginBottom: 20,
   },
@@ -826,7 +883,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   translationsContainer: {
-    width: '100%',
+    width: '90%',
     marginBottom: 30,
     maxHeight: 200,
   },
@@ -857,6 +914,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 20,
+    padding: 5,
   },
   buttonText: {
     color: 'white',
@@ -867,6 +927,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    flex: 1,
   },
   loadingText: {
     marginTop: 20,
@@ -875,7 +936,9 @@ const styles = StyleSheet.create({
   },
   exercisesContainer: {
     width: '100%',
-    paddingBottom: 40,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 40,
   },
   exerciseProgress: {
     textAlign: 'center',
@@ -884,10 +947,12 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   exerciseContainer: {
-    padding: 16,
+    flex: 1,
+    width: '100%',
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
-    marginBottom: 50, // Espacio adicional para que los botones sean visibles
+    padding: 16,
+    marginBottom: 20,
   },
   gameHeader: {
     flexDirection: 'row',
@@ -972,6 +1037,8 @@ const styles = StyleSheet.create({
   summaryContainer: {
     alignItems: 'center',
     padding: 30,
+    flex: 1,
+    justifyContent: 'center',
   },
   summaryTitle: {
     fontSize: 24,
@@ -1127,9 +1194,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 15,
   },
-  scrollContainer: {
-    maxHeight: SCREEN_HEIGHT * 0.4,
-  },
   translationTextContainer: {
     flex: 1,
   },
@@ -1150,4 +1214,53 @@ const styles = StyleSheet.create({
     marginLeft: 2,
     fontWeight: 'bold',
   },
+  // Añadir a los estilos existentes
+noExerciseContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 20,
+  backgroundColor: '#f9f9f9',
+  borderRadius: 12,
+  margin: 16,
+},
+noExerciseText: {
+  fontSize: 16,
+  color: '#666',
+  textAlign: 'center',
+  marginBottom: 20,
+},
+retryButton: {
+  backgroundColor: '#4CAF50',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 20,
+},
+retryButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+},
+fallbackContainer: {
+  padding: 20,
+  alignItems: 'center',
+  backgroundColor: '#f5f5f5',
+  borderRadius: 8,
+  margin: 10,
+},
+fallbackText: {
+  fontSize: 16,
+  color: '#666',
+  textAlign: 'center',
+  marginBottom: 20,
+},
+skipButton: {
+  backgroundColor: '#FF9800',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 20,
+},
+skipButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+},
 });

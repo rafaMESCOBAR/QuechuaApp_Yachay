@@ -275,21 +275,23 @@ export const AnagramExercise: React.FC<AnagramExerciseProps> = ({
 const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
+    width: '100%',
   },
   container: {
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
-    margin: 16,
+    margin: 0,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    marginBottom: 40, // Añadir espacio extra al final
+    flex: 1,
+    width: '100%',
   },
   questionText: {
-    fontSize: 18, // Reducido para mejorar visualización
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
@@ -309,6 +311,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 25,
     marginBottom: 20,
+    width: '100%',
   },
   listenButtonText: {
     color: 'white',
@@ -319,6 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    width: '100%',
   },
   timerContainer: {
     flexDirection: 'row',
@@ -351,6 +355,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 30,
     flexWrap: 'wrap',
+    width: '100%',
   },
   letterSlot: {
     width: 40,
@@ -375,6 +380,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginBottom: 20,
+    width: '100%',
   },
   shuffledLetter: {
     width: 40,
@@ -399,18 +405,25 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    width: '100%',
   },
   resetButton: {
     backgroundColor: '#9E9E9E',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
   },
   submitButton: {
     backgroundColor: '#FF0000',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
+    flex: 1,
+    marginLeft: 10,
+    alignItems: 'center',
   },
   buttonText: {
     color: 'white',
@@ -421,6 +434,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 20,
     alignItems: 'center',
+    width: '100%',
   },
   correctFeedback: {
     backgroundColor: '#E8F5E9',

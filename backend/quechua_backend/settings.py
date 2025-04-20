@@ -1,4 +1,3 @@
-# quechua_backend/settings.py
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -10,16 +9,26 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&7tf@5yet73lb=*5_)!ee&jac-9isq2&ox#si0y91tli5hd#7&'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-your-default-secret-key-here')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*', '127.0.0.1', 'localhost', '10.200.169.148', '192.168.137.7']
+# Leer ALLOWED_HOSTS desde el archivo .env
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 # OpenAI API Key (para ejercicios generados por IA)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 print(f"OpenAI API Key configurada: {'Sí' if OPENAI_API_KEY else 'No'}")
+
+# Google Client ID para verificación de tokens
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', 'your-google-client-id-here')
+
+# Google Cloud API Key para servicios de Google
+GOOGLE_CLOUD_API_KEY = os.getenv('GOOGLE_CLOUD_API_KEY', '')
+
+# Firebase credentials path
+FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', os.path.join(BASE_DIR, 'firebase-credentials.json'))
 
 # Application definition
 INSTALLED_APPS = [

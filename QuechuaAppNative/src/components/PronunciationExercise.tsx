@@ -664,14 +664,17 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: 'white',
+    width: '100%',
   },
   scrollContainer: {
     flex: 1,
+    width: '100%',
   },
   contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 100, // Extra padding to account for the fixed button
+    width: '100%',
   },
   container: {
     backgroundColor: 'white',
@@ -682,6 +685,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
+    flex: 1,
+    width: '100%',
   },
   questionText: {
     fontSize: 15,
@@ -695,6 +700,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 2,
     borderLeftColor: '#ddd',
+    width: '100%',
   },
   wordContainer: {
     alignItems: 'center',
@@ -707,6 +713,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: '100%',
   },
   wordText: {
     fontSize: 38,
@@ -742,6 +749,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: '100%',
   },
   recordButton: {
     backgroundColor: '#4CAF50',
@@ -756,6 +764,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    width: '80%',
+    alignSelf: 'center',
   },
   recordingButton: {
     backgroundColor: '#F44336',
@@ -770,6 +780,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    width: '80%',
+    alignSelf: 'center',
   },
   continueButton: {
     backgroundColor: '#FF9800',
@@ -784,6 +796,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    width: '80%',
+    alignSelf: 'center',
   },
   buttonText: {
     color: 'white',
@@ -796,6 +810,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     borderLeftWidth: 4,
+    width: '100%',
   },
   successFeedback: {
     backgroundColor: '#E8F5E9',
@@ -825,6 +840,7 @@ const styles = StyleSheet.create({
   attemptsContainer: {
     alignItems: 'center',
     marginTop: 10,
+    width: '100%',
   },
   attemptsText: {
     fontSize: 14,
@@ -834,6 +850,7 @@ const styles = StyleSheet.create({
   processingContainer: {
     alignItems: 'center',
     padding: 16,
+    width: '100%',
   },
   processingText: {
     marginTop: 12,
@@ -865,6 +882,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f5f5f5',
     borderRadius: 10,
+    width: '100%',
   },
   audioLevelLabel: {
     fontSize: 14,
@@ -876,6 +894,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     borderRadius: 6,
     overflow: 'hidden',
+    width: '100%',
   },
   audioLevelFill: {
     height: '100%',

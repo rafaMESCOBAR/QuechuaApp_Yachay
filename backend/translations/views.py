@@ -1,22 +1,34 @@
 #backend/translations/views.py
 # views.py completo
+import os
+import base64
+import tempfile
+import requests
+import json
+from datetime import timedelta
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
+from django.http import JsonResponse
+from django.utils import timezone
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
-from django.core.cache import cache
-from django.conf import settings
-from django.utils import timezone
 from rest_framework.authtoken.models import Token
-from datetime import timedelta
-from django.http import JsonResponse
-import base64
-import tempfile
-import os
-import requests
-import json
+
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials
+# Agregue estas importaciones al inicio del archivo
+import time
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from django.conf import settings
 
 from .models import (
     ObjectTranslation, UserProfile, Exercise, UserProgress,
@@ -745,3 +757,241 @@ def calculate_similarity(a, b):
     
     # Limitar resultado entre 0 y 1
     return max(0.0, min(1.0, raw_similarity))
+ # Inicializar Firebase Admin SDK (solo una vez)
+def initialize_firebase():
+    try:
+        if not firebase_admin._apps:
+            # Ruta al archivo de credenciales (debes crearlo)
+            firebase_cred_path = os.path.join(settings.BASE_DIR, 'firebase-credentials.json')
+            if not os.path.exists(firebase_cred_path):
+                raise ImproperlyConfigured(
+                    "Firebase credentials file not found. Create a service account key in Firebase console "
+                    "and save it as 'firebase-credentials.json' in your project root."
+                )
+            
+            cred = credentials.Certificate(firebase_cred_path)
+            firebase_admin.initialize_app(cred)
+            print("Firebase inicializado correctamente")
+        else:
+            print("Firebase ya estaba inicializado")
+    except Exception as e:
+        logger.error(f"Error en autenticación Firebase: {str(e)}", exc_info=True)
+        return Response(
+            {'error': f'Error en el servidor: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        # No se necesita esta línea:
+        # print(f"Error inicializando Firebase: {str(e)}")   
+        # Pasar esto al log ya está bien.
+
+# Intentar inicializar Firebase al cargar la aplicación
+initialize_firebase()
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def firebase_login_view(request):
+    """Iniciar sesión o registrar usuario con token de Firebase."""
+    firebase_token = request.data.get('firebase_token')
+    email = request.data.get('email')
+    name = request.data.get('name', '')
+    photo_url = request.data.get('photo_url', '')
+    
+    if not firebase_token or not email:
+        return Response(
+            {'error': 'Se requiere token de Firebase y correo electrónico'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Verificar el token de Firebase
+        try:
+            firebase_user = firebase_auth.verify_id_token(firebase_token)
+        except Exception as e:
+            logger.error(f"Error al verificar token de Firebase: {str(e)}")
+            return Response(
+                {'error': 'Token de Firebase inválido'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Verificar que el email coincida con el del token
+        if email != firebase_user.get('email'):
+            return Response(
+                {'error': 'El correo electrónico no coincide con el token'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar usuario por email
+        try:
+            user = User.objects.get(email=email)
+            # Usuario existente, actualizar nombre si es necesario
+            if name and not user.first_name:
+                name_parts = name.split(' ', 1)
+                user.first_name = name_parts[0]
+                if len(name_parts) > 1:
+                    user.last_name = name_parts[1]
+                user.save()
+        except User.DoesNotExist:
+            # Crear nuevo usuario
+            username = email.split('@')[0]
+            base_username = username
+            counter = 1
+            
+            # Asegurarse de que el username sea único
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            
+            # Crear el usuario
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=None  # Usuario autenticado por Firebase, no necesita contraseña
+            )
+            
+            # Establecer nombre si está disponible
+            if name:
+                name_parts = name.split(' ', 1)
+                user.first_name = name_parts[0]
+                if len(name_parts) > 1:
+                    user.last_name = name_parts[1]
+                user.save()
+            
+            # Verificar si el perfil se creó automáticamente por la señal
+            profile = getattr(user, 'profile', None)
+            if profile:
+                if photo_url:
+                    profile.profile_image = photo_url
+                profile.save()
+        
+        # Crear o recuperar token de autenticación
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        # Obtener perfil
+        profile = user.profile
+        
+        return Response({
+            'token': token.key,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'profile': UserProfileSerializer(profile).data
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Error en la autenticación: {str(e)}", exc_info=True)
+        return Response(
+            {'error': 'Error en el servidor'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def google_login_view(request):
+    """Iniciar sesión o registrar usuario con token de Google directamente."""
+    google_token = request.data.get('id_token')
+    email = request.data.get('email')
+    name = request.data.get('name', '')
+    photo_url = request.data.get('photo_url', '')
+    
+    if not google_token or not email:
+        return Response(
+            {'error': 'Se requiere token de Google y correo electrónico'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Verificar el token de Google directamente usando la API de Google
+        try:
+            id_info = id_token.verify_oauth2_token(
+                google_token, 
+                google_requests.Request(), 
+                settings.GOOGLE_CLIENT_ID
+            )
+            
+            # Verificar que el token no esté expirado
+            if id_info['exp'] < time.time():
+                return Response(
+                    {'error': 'Token de Google expirado'}, 
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+                
+            # Verificar que el email coincida con el token
+            if email.lower() != id_info.get('email', '').lower():
+                return Response(
+                    {'error': 'El correo electrónico no coincide con el token'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except ValueError as ve:
+            logger.error(f"Error al verificar token de Google: {str(ve)}")
+            return Response(
+                {'error': 'Token de Google inválido'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Buscar usuario por email
+        try:
+            user = User.objects.get(email=email)
+            # Usuario existente, actualizar nombre si es necesario
+            if name and not user.first_name:
+                name_parts = name.split(' ', 1)
+                user.first_name = name_parts[0]
+                if len(name_parts) > 1:
+                    user.last_name = name_parts[1]
+                user.save()
+        except User.DoesNotExist:
+            # Crear nuevo usuario
+            username = email.split('@')[0]
+            base_username = username
+            counter = 1
+            
+            # Asegurarse de que el username sea único
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            
+            # Crear el usuario
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=None  # Usuario autenticado por Google, no necesita contraseña
+            )
+            
+            # Establecer nombre si está disponible
+            if name:
+                name_parts = name.split(' ', 1)
+                user.first_name = name_parts[0]
+                if len(name_parts) > 1:
+                    user.last_name = name_parts[1]
+                user.save()
+            
+            # Verificar si el perfil se creó automáticamente por la señal
+            profile = getattr(user, 'profile', None)
+            if profile:
+                if photo_url:
+                    profile.profile_image = photo_url
+                profile.save()
+        
+        # Crear o recuperar token de autenticación
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        # Obtener perfil
+        profile = user.profile
+        
+        return Response({
+            'token': token.key,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'profile': UserProfileSerializer(profile).data
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Error en la autenticación con Google: {str(e)}", exc_info=True)
+        return Response(
+            {'error': f'Error en el servidor: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

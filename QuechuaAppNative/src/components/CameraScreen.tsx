@@ -1,4 +1,4 @@
-//src/components/CameraScreen.tsx
+// src/components/CameraScreen.tsx
 
 import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Modal, ScrollView } from 'react-native';
@@ -147,70 +147,80 @@ export function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <Camera
-        ref={camera}
-        style={styles.camera}
-        device={device}
-        isActive={true}
-        photo={true}
-        enableZoomGesture={true}
-      />
-      {isGridVisible && <Grid />}
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.controlButton,
-            flashMode === 'on' && styles.activeButton,
-            isFrontCamera && styles.disabledButton
-          ]}
-          onPress={() => !isFrontCamera && setFlashMode(prev => prev === 'off' ? 'on' : 'off')}
-          disabled={isFrontCamera}
-        >
-          <Text style={[
-            styles.buttonText,
-            isFrontCamera && styles.disabledButtonText
-          ]}>
-            {flashMode === 'on' ? '⚡️ ON' : '⚡️ OFF'}
-          </Text>
-        </TouchableOpacity>
+      {/* Mostrar la cámara solo cuando no se están mostrando resultados */}
+      {!showResults && (
+        <Camera
+          ref={camera}
+          style={styles.camera}
+          device={device}
+          isActive={!showResults} // Desactivar cuando se muestra el modal
+          photo={true}
+          enableZoomGesture={true}
+        />
+      )}
+      
+      {isGridVisible && !showResults && <Grid />}
+      
+      {!showResults && (
+        <View style={styles.controlsContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.controlButton,
+              flashMode === 'on' && styles.activeButton,
+              isFrontCamera && styles.disabledButton
+            ]}
+            onPress={() => !isFrontCamera && setFlashMode(prev => prev === 'off' ? 'on' : 'off')}
+            disabled={isFrontCamera}
+          >
+            <Text style={[
+              styles.buttonText,
+              isFrontCamera && styles.disabledButtonText
+            ]}>
+              {flashMode === 'on' ? '⚡️ ON' : '⚡️ OFF'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            isGridVisible && styles.activeButton
-          ]}
-          onPress={() => setIsGridVisible(!isGridVisible)}
-        >
-          <Text style={styles.buttonText}>⊞</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.controlButton,
+              isGridVisible && styles.activeButton
+            ]}
+            onPress={() => setIsGridVisible(!isGridVisible)}
+          >
+            <Text style={styles.buttonText}>⊞</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.shutterButton}
-          onPress={takePhoto}
-        >
-          <View style={styles.shutterButtonInner} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.shutterButton}
+            onPress={takePhoto}
+          >
+            <View style={styles.shutterButtonInner} />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={() => setIsFrontCamera(!isFrontCamera)}
-        >
-          <Text style={styles.buttonText}>🔄</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={() => setIsFrontCamera(!isFrontCamera)}
+          >
+            <Text style={styles.buttonText}>🔄</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={pickImage}
-        >
-          <Text style={styles.buttonText}>🖼️</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={pickImage}
+          >
+            <Text style={styles.buttonText}>🖼️</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       {isProcessing && (
         <View style={styles.processingOverlay}>
           <Text style={styles.processingText}>Procesando imagen...</Text>
         </View>
       )}
+      
       <SessionGallery />
+      
       <DetectionResultModal
         isVisible={showResults}
         onClose={() => setShowResults(false)}

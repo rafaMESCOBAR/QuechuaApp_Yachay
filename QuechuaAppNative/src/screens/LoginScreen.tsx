@@ -1,17 +1,18 @@
-// src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
   ActivityIndicator,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Login: undefined;
@@ -28,7 +29,8 @@ export default function LoginScreen({ navigation }: Props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { login, loginWithGoogle } = useAuth();
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -39,11 +41,21 @@ export default function LoginScreen({ navigation }: Props) {
     setIsLoading(true);
     try {
       await login(username, password);
-      // No necesitamos navegar, el contexto se encargará de esto
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar sesión');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      await loginWithGoogle();
+    } catch (error: any) {
+      console.log('Error capturado en LoginScreen:', error);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -62,7 +74,7 @@ export default function LoginScreen({ navigation }: Props) {
           onChangeText={setUsername}
           autoCapitalize="none"
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Contraseña"
@@ -80,6 +92,30 @@ export default function LoginScreen({ navigation }: Props) {
             <ActivityIndicator color="white" />
           ) : (
             <Text style={styles.buttonText}>INICIAR SESIÓN</Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>O</Text>
+          <View style={styles.divider} />
+        </View>
+
+        <TouchableOpacity
+          style={styles.googleButton}
+          onPress={handleGoogleLogin}
+          disabled={isGoogleLoading}
+        >
+          {isGoogleLoading ? (
+            <ActivityIndicator color="#4285F4" />
+          ) : (
+            <>
+              <Image
+               source={require('../../assets/google-logo.png')}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleButtonText}>Continuar con Google</Text>
+            </>
           )}
         </TouchableOpacity>
 
@@ -137,6 +173,42 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    paddingHorizontal: 10,
+    color: '#666',
+    fontSize: 14,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+    resizeMode: 'contain',
+  },
+  googleButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '500',
   },
   registerContainer: {
     flexDirection: 'row',

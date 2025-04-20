@@ -198,6 +198,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginVertical: 8,
+    flex: 1,
+    width: '100%',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -225,7 +227,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  // Botón de escucha
   listenButton: {
     backgroundColor: '#2196F3',
     flexDirection: 'row',
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 25,
     marginBottom: 20,
+    width: '100%',
   },
   listenButtonText: {
     color: 'white',
@@ -242,12 +244,14 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     marginBottom: 20,
+    width: '100%',
   },
   option: {
     backgroundColor: '#F5F5F5',
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
+    width: '100%',
   },
   optionSelected: {
     backgroundColor: '#E3F2FD',
@@ -256,6 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: '#2196F3',
+    width: '100%',
   },
   optionCorrect: {
     backgroundColor: '#E8F5E9',
@@ -264,6 +269,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: '#2E7D32',
+    width: '100%',
   },
   optionIncorrect: {
     backgroundColor: '#FFEBEE',
@@ -272,6 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: '#C62828',
+    width: '100%',
   },
   optionText: {
     fontSize: 16,
@@ -296,6 +303,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 24,
     alignItems: 'center',
+    width: '100%',
   },
   submitButtonDisabled: {
     backgroundColor: '#BDBDBD',
@@ -308,6 +316,7 @@ const styles = StyleSheet.create({
   feedbackContainer: {
     alignItems: 'center',
     marginTop: 16,
+    width: '100%',
   },
   feedbackText: {
     fontSize: 18,
@@ -320,6 +329,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 24,
     paddingHorizontal: 24,
+    width: '60%',
+    alignItems: 'center',
   },
   nextButtonText: {
     color: 'white',

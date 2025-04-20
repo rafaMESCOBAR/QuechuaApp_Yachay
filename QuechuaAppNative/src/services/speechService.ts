@@ -3,7 +3,7 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import * as Speech from 'expo-speech';
-
+import { API_URL } from '@env';
 // Para acceder a la API de Google Cloud
 import { GOOGLE_CLOUD_API_KEY } from '@env';
 const SPEECH_TO_TEXT_URL = 'https://speech.googleapis.com/v1/speech:recognize';
@@ -432,7 +432,7 @@ export class SpeechService {
     console.log(`Tamaño del audio en base64: ${audioBase64.length} bytes`);
 
     // Enviar al backend
-    const API_URL = 'http://192.168.137.7:8000/api'; // Asegúrate que esta URL sea correcta
+   // Asegúrate que esta URL sea correcta
     const response = await fetch(`${API_URL}/speech/analyze/`, {
       method: 'POST',
       headers: {

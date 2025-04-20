@@ -223,6 +223,7 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   questionText: {
     fontSize: 18,
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
     paddingHorizontal: 10,
+    width: '100%',
   },
   column: {
     flex: 1,
@@ -256,6 +258,7 @@ const styles = StyleSheet.create({
   },
   wordsColumn: {
     alignItems: 'stretch',
+    width: '100%',
   },
   wordButton: {
     paddingHorizontal: 15,
@@ -264,6 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   spanishWord: {
     backgroundColor: '#E3F2FD',
@@ -288,6 +292,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 5,
+    width: '100%',
   },
   audioButton: {
     padding: 8,
@@ -300,6 +305,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginVertical: 15,
     marginHorizontal: 10,
+    width: '95%',
   },
   correctResult: {
     backgroundColor: '#E8F5E9',
@@ -323,6 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
     alignSelf: 'center',
+    width: '80%',
   },
   continueButton: {
     backgroundColor: '#4CAF50',
@@ -332,6 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
     alignSelf: 'center',
+    width: '80%',
   },
   buttonText: {
     color: 'white',
@@ -339,6 +347,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   bottomSpace: {
-    height: 100, // Espacio extra para evitar que los botones del modal oculten contenido
+    height: 80, // Espacio extra para evitar que los botones del modal oculten contenido
   },
 });

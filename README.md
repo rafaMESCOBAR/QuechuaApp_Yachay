@@ -1,134 +1,76 @@
+# QuechuaApp Native
 
-## ✅ Requisitos
+## Requisitos Previos
 
 - Python 3.8+
 - Node.js 14+
 - Expo CLI
-- Cuenta en Google Cloud (reconocimiento de voz)
-- Cuenta en OpenAI (generación de ejercicios)
+- Cuenta de Google Cloud
+- Cuenta de OpenAI
 
----
+## Instalación
 
-## ⚙️ Instalar dependencias frontend:
-```bash
-cd mobile/QuechuaAppNative
-# QuechuaAppNative
+### Frontend
 
-## Dependencias Instaladas
-
-A continuación se detallan las dependencias que se han instalado en el proyecto y su propósito:
-
-### 1. **`@react-navigation/native`**
-   - **Descripción:** Dependencia principal para la navegación entre pantallas en la aplicación.
-   - **Comando de instalación:**
-     ```bash
-     npm install @react-navigation/native
-     ```
-
-### 2. **`@react-navigation/bottom-tabs`**
-   - **Descripción:** Necesaria para crear una barra de navegación de pestañas en la parte inferior de la aplicación.
-   - **Comando de instalación:**
-     ```bash
-     npm install @react-navigation/bottom-tabs
-     ```
-
-### 3. **`react-native-screens`**
-   - **Descripción:** Mejora el rendimiento de las pantallas al utilizar la API nativa de pantallas en React Native.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-screens
-     ```
-
-### 4. **`react-native-safe-area-context`**
-   - **Descripción:** Maneja el área segura en las pantallas, evitando que los elementos de la UI se solapen con las áreas del sistema.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-safe-area-context
-     ```
-
-### 5. **`react-native-gesture-handler`**
-   - **Descripción:** Proporciona el manejo de gestos (deslizar, arrastrar, etc.) necesarios para las interacciones en la app.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-gesture-handler
-     ```
-
-### 6. **`react-native-reanimated`**
-   - **Descripción:** Permite animaciones fluidas y de alto rendimiento para la navegación y otras interacciones.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-reanimated
-     ```
-
-### 7. **`expo-av`**
-   - **Descripción:** API para reproducir audio y video en la aplicación utilizando Expo.
-   - **Comando de instalación:**
-     ```bash
-     npm install expo-av
-     ```
-
-### 8. **`expo-speech`**
-   - **Descripción:** API para convertir texto en voz (TTS - Text to Speech).
-   - **Comando de instalación:**
-     ```bash
-     npm install expo-speech
-     ```
-
-### 9. **`expo-media-library`**
-   - **Descripción:** Permite acceder a la biblioteca de medios del dispositivo (fotos, videos, etc.).
-   - **Comando de instalación:**
-     ```bash
-     npm install expo-media-library
-     ```
-
-### 10. **`expo-image-picker`**
-   - **Descripción:** Permite seleccionar imágenes o fotos desde la galería o la cámara del dispositivo.
-   - **Comando de instalación:**
-     ```bash
-     npm install expo-image-picker
-     ```
-
-### 11. **`react-native-vision-camera`**
-   - **Descripción:** Proporciona acceso a la cámara del dispositivo para capturar imágenes y videos.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-vision-camera
-     ```
-
-### 12. **`react-native-dotenv`**
-   - **Descripción:** Carga variables de entorno desde archivos `.env` para usarlas en el código JavaScript de forma segura.
-   - **Comando de instalación:**
-     ```bash
-     npm install react-native-dotenv
-     ```
-
----
-
-
-
-
-
-
-## Instrucciones de Instalación
-
-1. Clona el repositorio:
+1. Ir al directorio del proyecto:
    ```bash
-   git clone https://github.com/tu-usuario/QuechuaAppNative.git
+   cd mobile/QuechuaAppNative
+   npm install
+   ```
 
+### Backend
 
-## ⚙️ Configuración del Backend
+1. Configurar entorno virtual:
+   ```bash
+   cd backend
+   python -m venv venv
+   # Activar venv (según tu sistema operativo)
+   pip install -r requirements.txt
+   ```
+
+2. Configurar variables de entorno:
+   ```bash
+   cp .env.example .env
+   # Editar .env con tus claves
+   ```
+
+3. Iniciar proyecto:
+   ```bash
+   python manage.py migrate
+   python manage.py runserver
+   ```
+
+## Dependencias Principales
+
+### Navegación
+- `@react-navigation/native`
+- `@react-navigation/bottom-tabs`
+
+### UI y Rendimiento
+- `react-native-screens`
+- `react-native-safe-area-context`
+- `react-native-gesture-handler`
+
+### APIs Expo
+- `expo-av`
+- `expo-speech`
+- `expo-media-library`
+- `expo-image-picker`
+
+### Utilidades
+- `react-native-vision-camera`
+- `react-native-dotenv`
+
+## Instalación de Dependencias
 
 ```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+npm install @react-navigation/native
+npm install @react-navigation/bottom-tabs
+# Instalar dependencias según necesidad
+```
 
-REM Crear archivo .env a partir del ejemplo
-copy .env.example .env
+## Notas Importantes
 
-REM Edita .env y agrega tus claves API
-notepad .env
-
-python manage.py migrate
-python manage.py runserver
+- Protege tus claves API
+- Verifica compatibilidad de versiones
+- Consulta documentación de paquetes

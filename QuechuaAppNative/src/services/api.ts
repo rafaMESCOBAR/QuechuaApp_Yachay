@@ -3,8 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DetectionResponse } from '../types/api';
-
-const API_URL = 'http://192.168.137.7:8000/api';
+import { API_URL } from '@env';
 const AUTH_TOKEN_KEY = '@yachay_auth_token';
 
 export class ApiService {
@@ -124,6 +123,44 @@ export class ApiService {
       return data;
     } catch (error) {
       console.error('Error en login:', error);
+      throw error;
+    }
+  }
+
+  // Nueva función para login con Firebase
+  static async loginWithFirebase(firebaseToken: string, userData: {
+    email: string;
+    name: string;
+    photoURL?: string;
+  }) {
+    try {
+      await this.checkConnectivity();
+      
+      const response = await fetch(`${API_URL}/auth/firebase-login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firebase_token: firebaseToken,
+          email: userData.email,
+          name: userData.name,
+          photo_url: userData.photoURL || ''
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión con Google');
+      }
+
+      // Guardar token para mantener sesión
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      
+      return data;
+    } catch (error) {
+      console.error('Error en login con Firebase:', error);
       throw error;
     }
   }
@@ -327,6 +364,47 @@ export class ApiService {
       return await response.json();
     } catch (error) {
       console.error('Error al enviar respuesta:', error);
+      throw error;
+    }
+  }
+
+  static async loginWithGoogle(googleToken: string, userData: {
+    email: string;
+    name: string;
+    photoURL?: string;
+  }) {
+    try {
+      await this.checkConnectivity();
+      
+      console.log('Enviando token de Google al backend...');
+      
+      const response = await fetch(`${API_URL}/auth/google-login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_token: googleToken,
+          email: userData.email,
+          name: userData.name,
+          photo_url: userData.photoURL || ''
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error en respuesta de login con Google:', errorData);
+        throw new Error(errorData.error || 'Error al iniciar sesión con Google');
+      }
+      
+      const data = await response.json();
+      
+      // Guardar token para mantener sesión
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      
+      return data;
+    } catch (error) {
+      console.error('Error en login con Google:', error);
       throw error;
     }
   }

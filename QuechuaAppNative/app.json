@@ -7,7 +7,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "bridgelessMode": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -33,24 +34,35 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "La aplicación necesita acceso a la cámara"
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "La aplicación necesita acceso a tus fotos"
-        }
-      ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": "La aplicación necesita acceso al micrófono para grabar tu pronunciación"
-        }
-      ]
-    ]
+  [
+    "react-native-vision-camera",
+    {
+      "cameraPermissionText": "La aplicación necesita acceso a la cámara"
+    }
+  ],
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "La aplicación necesita acceso a tus fotos"
+    }
+  ],
+  [
+    "expo-av",
+    {
+      "microphonePermission": "La aplicación necesita acceso al micrófono para grabar tu pronunciación"
+    }
+  ],
+  [
+    "@react-native-google-signin/google-signin"
+  ],
+  [
+    "@react-native-firebase/app",
+    {
+      "android_package_name": "com.quechuaapp.mobile",
+      "android_firebase_bom_version": "32.7.0"
+    }
+  ],
+  "@react-native-firebase/auth"
+]
   }
 }
