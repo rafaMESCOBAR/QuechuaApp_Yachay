@@ -34,3 +34,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+# Firebase config (por si se mueve de ubicación)
+**/google-services.json
+
+QuechuaAppNative/android/app/google-services.json
