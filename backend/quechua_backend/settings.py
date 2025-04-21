@@ -1,3 +1,4 @@
+#C:\QuechuaApp_Yachay\backend\quechua_backend\settings.py
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -32,6 +33,7 @@ FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', os.path.join(
 
 # Application definition
 INSTALLED_APPS = [
+    'jazzmin',  # Añade esta línea al principio
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -103,6 +105,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Esta es la nueva línea que debes agregar
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -149,3 +152,101 @@ REST_FRAMEWORK = {
 # Configuración de archivos media (para uploads de audio, imágenes, etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Configuración de Jazzmin
+JAZZMIN_SETTINGS = {
+    # título de la página
+    "site_title": "Yachay Admin",
+    
+    # Título que aparece en la barra de navegación
+    "site_header": "Yachay",
+    
+    # Título en la página de inicio del administrador
+    "site_brand": "Yachay - Panel de Administración",
+    
+    # CSS que se muestra a la izquierda del nombre de la marca
+    "site_icon": "fas fa-language",
+    
+    # URL vinculada al logo de la marca
+    "site_url": "/",
+    
+    # Texto CSS de bienvenida en la página de inicio del administrador
+    "welcome_sign": "Bienvenido al Portal de Administración de Yachay",
+    
+    # Copyright en el pie de página
+    "copyright": "Yachay - Aprendizaje de Quechua",
+    
+    # El modelo administrador para buscar desde la barra de búsqueda
+    "search_model": "translations.ObjectTranslation",
+    
+    # Icono de la aplicación
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    
+    # Mostrar constructor de UI
+    "show_ui_builder": True,
+    
+    # Enlaces personalizados
+    "custom_links": {
+        "translations": [{
+            "name": "Dashboard", 
+            "url": "admin:index", 
+            "icon": "fas fa-tachometer-alt",
+        }],
+    },
+    
+    # Iconos para aplicaciones y modelos
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "translations.objecttranslation": "fas fa-language",
+        "translations.userprofile": "fas fa-user-graduate",
+        "translations.exercise": "fas fa-tasks",
+        "translations.userprogress": "fas fa-chart-line",
+        "translations.achievement": "fas fa-trophy",
+        "translations.userachievement": "fas fa-medal",
+        "translations.activitylog": "fas fa-history",
+        "translations.pronunciationrecord": "fas fa-microphone",
+    },
+    
+    # Orden de las aplicaciones en el sidebar
+    "order_with_respect_to": ["auth", "translations"],
+    
+    # Enlaces personalizados en la sección de usuario
+    "usermenu_links": [
+        {"name": "Documentación", "url": "https://docs.djangoproject.com/", "new_window": True},
+    ],
+}
+
+# Configuración de tema UI
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-danger",
+    "accent": "accent-danger",
+    "navbar": "navbar-danger navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-danger",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-danger",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
