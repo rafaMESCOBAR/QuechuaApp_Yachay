@@ -19,12 +19,32 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth.models import User
+from translations.models import ObjectTranslation, Exercise, Achievement, ActivityLog
+
+# Monkey patch para el admin index
+original_index = admin.site.index
+def custom_index(request, extra_context=None):
+    if extra_context is None:
+        extra_context = {}
+    
+    # Estadísticas para el dashboard
+    extra_context.update({
+        'translations_count': ObjectTranslation.objects.count(),
+        'exercises_count': Exercise.objects.count(),
+        'users_count': User.objects.count(),
+        'achievements_count': Achievement.objects.count(),
+        'recent_activity': ActivityLog.objects.select_related('user').order_by('-timestamp')[:10],
+    })
+    
+    return original_index(request, extra_context)
+
+admin.site.index = custom_index
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('translations.urls')),
 ]
 
-# Añadir configuración de archivos estáticos y media
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

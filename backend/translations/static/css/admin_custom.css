@@ -1,0 +1,58 @@
+/*backend\translations\static\css\admin_custom.css*/
+
+
+/* Estilos personalizados para el admin de Yachay */
+
+/* Tamaños consistentes para las tarjetas */
+.card {
+    height: 100%;
+    margin-bottom: 20px;
+}
+
+/* Asegurar que los contenedores de secciones tengan altura igual */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.dashboard-col {
+    padding: 0 10px;
+    margin-bottom: 20px;
+}
+
+/* Estilos para las tarjetas de estadísticas */
+.stat-card {
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Estilos para las tarjetas de acciones rápidas */
+.action-card {
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Asegurar espaciado entre secciones */
+.section-header {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
