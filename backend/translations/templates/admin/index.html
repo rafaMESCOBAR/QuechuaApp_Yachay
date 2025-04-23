@@ -4,271 +4,227 @@
 {% load i18n %}
 {% load static %}
 
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card card-danger">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Panel de Control de Yachay</h3>
-            </div>
-            <div class="card-body">
-                <p class="lead">Desde este panel puedes gestionar todo el contenido de la aplicación Yachay para el aprendizaje de Quechua.</p>
-                
-                <!-- Tarjetas de estadísticas rápidas -->
-                <div class="row">
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box bg-gradient-danger">
-                            <span class="info-box-icon"><i class="fas fa-language"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Palabras</span>
-                                <span class="info-box-number">{{ translations_count|default:"0" }}</span>
-                                <div class="progress">
-                                    <div class="progress-bar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box bg-gradient-warning">
-                            <span class="info-box-icon"><i class="fas fa-tasks"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Ejercicios</span>
-                                <span class="info-box-number">{{ exercises_count|default:"0" }}</span>
-                                <div class="progress">
-                                    <div class="progress-bar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box bg-gradient-info">
-                            <span class="info-box-icon"><i class="fas fa-users"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Usuarios</span>
-                                <span class="info-box-number">{{ users_count|default:"0" }}</span>
-                                <div class="progress">
-                                    <div class="progress-bar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box bg-gradient-success">
-                            <span class="info-box-icon"><i class="fas fa-trophy"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Logros</span>
-                                <span class="info-box-number">{{ achievements_count|default:"0" }}</span>
-                                <div class="progress">
-                                    <div class="progress-bar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/admin_custom.css' %}">
+{% endblock %}
 
-<div class="row">
+{% block content %}
+<div class="container-fluid">
+  <!-- Encabezado -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card card-danger">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Panel de Control de Yachay</h3>
+        </div>
+        <div class="card-body">
+          <p class="lead">Desde este panel puedes gestionar todo el contenido de la aplicación Yachay para el aprendizaje de Quechua.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secciones principales con altura igual -->
+  <div class="row equal-height-row">
     <!-- Sección de Gestión de Contenido -->
     <div class="col-lg-6 col-12">
-        <div class="card">
-            <div class="card-header bg-light">
-                <h3 class="card-title"><i class="fas fa-book"></i> Gestión de Contenido</h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <p>Gestiona el vocabulario y traducciones disponibles para los usuarios.</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="small-box bg-danger">
-                            <div class="inner">
-                                <h3>{{ translations_count|default:"0" }}</h3>
-                                <p>Traducciones</p>
-                            </div>
-                            <div class="icon">
-                                <i class="fas fa-book"></i>
-                            </div>
-                            <a href="/admin/translations/objecttranslation/" class="small-box-footer">
-                                Administrar <i class="fas fa-arrow-circle-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="small-box bg-warning">
-                            <div class="inner">
-                                <h3>{{ exercises_count|default:"0" }}</h3>
-                                <p>Ejercicios</p>
-                            </div>
-                            <div class="icon">
-                                <i class="fas fa-tasks"></i>
-                            </div>
-                            <a href="/admin/translations/exercise/" class="small-box-footer">
-                                Administrar <i class="fas fa-arrow-circle-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center mt-3">
-                    <a href="/admin/translations/objecttranslation/add/" class="btn btn-danger">
-                        <i class="fas fa-plus"></i> Añadir Nueva Traducción
-                    </a>
-                </div>
-            </div>
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h3 class="card-title"><i class="fas fa-book"></i> Gestión de Contenido</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
         </div>
+        <div class="card-body">
+          <p>Gestiona el vocabulario y traducciones disponibles para los usuarios.</p>
+          
+          <div class="row equal-height-cards">
+            <div class="col-md-6 col-12 mb-3">
+              <div class="small-box bg-danger h-100">
+                <div class="inner">
+                  <h3>{{ translations_count|default:"0" }}</h3>
+                  <p>Traducciones</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-book"></i>
+                </div>
+                <a href="/admin/translations/objecttranslation/" class="small-box-footer">
+                  Administrar <i class="fas fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div>
+            
+            <div class="col-md-6 col-12 mb-3">
+              <div class="small-box bg-warning h-100">
+                <div class="inner">
+                  <h3>{{ exercises_count|default:"0" }}</h3>
+                  <p>Ejercicios</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-tasks"></i>
+                </div>
+                <a href="/admin/translations/exercise/" class="small-box-footer">
+                  Administrar <i class="fas fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-center mt-3">
+            <a href="/admin/translations/objecttranslation/add/" class="btn btn-danger">
+              <i class="fas fa-plus"></i> Añadir Nueva Traducción
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Sección de Usuarios -->
     <div class="col-lg-6 col-12">
-        <div class="card">
-            <div class="card-header bg-light">
-                <h3 class="card-title"><i class="fas fa-users"></i> Gestión de Usuarios</h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <p>Supervisa el progreso y gestiona los usuarios de la plataforma.</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="small-box bg-info">
-                            <div class="inner">
-                                <h3>{{ users_count|default:"0" }}</h3>
-                                <p>Usuarios</p>
-                            </div>
-                            <div class="icon">
-                                <i class="fas fa-user-graduate"></i>
-                            </div>
-                            <a href="/admin/auth/user/" class="small-box-footer">
-                                Administrar <i class="fas fa-arrow-circle-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="small-box bg-success">
-                            <div class="inner">
-                                <h3>{{ achievements_count|default:"0" }}</h3>
-                                <p>Logros</p>
-                            </div>
-                            <div class="icon">
-                                <i class="fas fa-trophy"></i>
-                            </div>
-                            <a href="/admin/translations/achievement/" class="small-box-footer">
-                                Administrar <i class="fas fa-arrow-circle-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center mt-3">
-                    <a href="/admin/translations/userprofile/" class="btn btn-info">
-                        <i class="fas fa-chart-bar"></i> Ver Estadísticas de Usuarios
-                    </a>
-                </div>
-            </div>
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h3 class="card-title"><i class="fas fa-users"></i> Gestión de Usuarios</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Acciones Rápidas -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-light">
-                <h3 class="card-title"><i class="fas fa-bolt"></i> Acciones Rápidas</h3>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-3 col-sm-6 col-12 mb-3">
-                        <a href="/admin/translations/objecttranslation/add/" class="btn btn-lg btn-outline-danger btn-block">
-                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
-                            Añadir Traducción
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-12 mb-3">
-                        <a href="/admin/translations/pronunciationrecord/" class="btn btn-lg btn-outline-warning btn-block">
-                            <i class="fas fa-microphone fa-2x mb-2"></i><br>
-                            Revisar Pronunciaciones
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-12 mb-3">
-                        <a href="/admin/translations/userachievement/add/" class="btn btn-lg btn-outline-success btn-block">
-                            <i class="fas fa-medal fa-2x mb-2"></i><br>
-                            Asignar Logro
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-12 mb-3">
-                        <a href="/admin/translations/exercise/add/" class="btn btn-lg btn-outline-info btn-block">
-                            <i class="fas fa-plus-square fa-2x mb-2"></i><br>
-                            Crear Ejercicio
-                        </a>
-                    </div>
+        <div class="card-body">
+          <p>Supervisa el progreso y gestiona los usuarios de la plataforma.</p>
+          
+          <div class="row equal-height-cards">
+            <div class="col-md-6 col-12 mb-3">
+              <div class="small-box bg-info h-100">
+                <div class="inner">
+                  <h3>{{ users_count|default:"0" }}</h3>
+                  <p>Usuarios</p>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Sección de Actividad Reciente -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-light">
-                <h3 class="card-title"><i class="fas fa-history"></i> Actividad Reciente</h3>
-            </div>
-            <div class="card-body p-0">
-                <div class="timeline timeline-inverse p-3">
-                    {% for log in recent_activity|slice:":5" %}
-                        <div class="time-label">
-                            <span class="bg-danger">{{ log.timestamp|date:"d M Y" }}</span>
-                        </div>
-                        <div>
-                            <i class="fas fa-user bg-primary"></i>
-                            <div class="timeline-item">
-                                <span class="time"><i class="far fa-clock"></i> {{ log.timestamp|time:"H:i" }}</span>
-                                <h3 class="timeline-header">{{ log.user.username }}</h3>
-                                <div class="timeline-body">
-                                    {{ log.activity_type }}
-                                </div>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="time-label">
-                            <span class="bg-info">Ahora</span>
-                        </div>
-                        <div>
-                            <i class="fas fa-info bg-info"></i>
-                            <div class="timeline-item">
-                                <div class="timeline-header">Sin actividad reciente</div>
-                                <div class="timeline-body">
-                                    No hay registros de actividad recientes para mostrar.
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
+                <div class="icon">
+                  <i class="fas fa-user-graduate"></i>
                 </div>
-            </div>
-            <div class="card-footer text-center">
-                <a href="/admin/translations/activitylog/" class="btn btn-sm btn-secondary">
-                    Ver todo el historial de actividad
+                <a href="/admin/auth/user/" class="small-box-footer">
+                  Administrar <i class="fas fa-arrow-circle-right"></i>
                 </a>
+              </div>
             </div>
+            
+            <div class="col-md-6 col-12 mb-3">
+              <div class="small-box bg-success h-100">
+                <div class="inner">
+                  <h3>{{ achievements_count|default:"0" }}</h3>
+                  <p>Logros</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-trophy"></i>
+                </div>
+                <a href="/admin/translations/achievement/" class="small-box-footer">
+                  Administrar <i class="fas fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-center mt-3">
+            <a href="/admin/translations/userprofile/" class="btn btn-info">
+              <i class="fas fa-chart-bar"></i> Ver Estadísticas de Usuarios
+            </a>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Separación clara entre secciones -->
+  <div class="section-divider my-4"></div>
+
+  <!-- Dos secciones inferiores con separación clara -->
+  <div class="row">
+    <!-- Acciones Rápidas -->
+    <div class="col-lg-6 col-12">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h3 class="card-title"><i class="fas fa-bolt"></i> Acciones Rápidas</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 col-sm-6 col-12 mb-3">
+              <a href="/admin/translations/objecttranslation/add/" class="action-card btn btn-lg btn-outline-danger btn-block">
+                <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                Añadir Traducción
+              </a>
+            </div>
+            <div class="col-md-6 col-sm-6 col-12 mb-3">
+              <a href="/admin/translations/pronunciationrecord/" class="action-card btn btn-lg btn-outline-warning btn-block">
+                <i class="fas fa-microphone fa-2x mb-2"></i><br>
+                Revisar Pronunciaciones
+              </a>
+            </div>
+            <div class="col-md-6 col-sm-6 col-12 mb-3">
+              <a href="/admin/translations/userachievement/add/" class="action-card btn btn-lg btn-outline-success btn-block">
+                <i class="fas fa-medal fa-2x mb-2"></i><br>
+                Asignar Logro
+              </a>
+            </div>
+            <div class="col-md-6 col-sm-6 col-12 mb-3">
+              <a href="/admin/translations/exercise/add/" class="action-card btn btn-lg btn-outline-info btn-block">
+                <i class="fas fa-plus-square fa-2x mb-2"></i><br>
+                Crear Ejercicio
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Actividad Reciente -->
+    <div class="col-lg-6 col-12">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h3 class="card-title"><i class="fas fa-history"></i> Actividad Reciente</h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="timeline timeline-inverse p-3">
+            {% for log in recent_activity|slice:":5" %}
+              <div class="time-label">
+                <span class="bg-danger">{{ log.timestamp|date:"d M Y" }}</span>
+              </div>
+              <div>
+                <i class="fas fa-user bg-primary"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="far fa-clock"></i> {{ log.timestamp|time:"H:i" }}</span>
+                  <h3 class="timeline-header">{{ log.user.username }}</h3>
+                  <div class="timeline-body">
+                    {{ log.activity_type }}
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <div class="time-label">
+                <span class="bg-info">Ahora</span>
+              </div>
+              <div>
+                <i class="fas fa-info bg-info"></i>
+                <div class="timeline-item">
+                  <div class="timeline-header">Sin actividad reciente</div>
+                  <div class="timeline-body">
+                    No hay registros de actividad recientes para mostrar.
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card-footer text-center">
+          <a href="/admin/translations/activitylog/" class="btn btn-sm btn-secondary">
+            Ver todo el historial de actividad
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
