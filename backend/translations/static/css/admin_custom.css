@@ -1,58 +1,134 @@
 /*backend\translations\static\css\admin_custom.css*/
 
-
 /* Estilos personalizados para el admin de Yachay */
 
-/* Tamaños consistentes para las tarjetas */
-.card {
-    height: 100%;
-    margin-bottom: 20px;
-}
-
-/* Asegurar que los contenedores de secciones tengan altura igual */
-.dashboard-container {
-    display: flex;
-    flex-direction: column;
-}
-
-.dashboard-row {
+/* Eliminar espacio superior */
+.content-wrapper {
+    padding-top: 0 !important;
+  }
+  
+  /* Asegurar alturas iguales en filas */
+  .equal-height-row {
     display: flex;
     flex-wrap: wrap;
-    margin-bottom: 20px;
-}
-
-.dashboard-col {
-    padding: 0 10px;
-    margin-bottom: 20px;
-}
-
-/* Estilos para las tarjetas de estadísticas */
-.stat-card {
-    height: 150px;
+  }
+  
+  .equal-height-row > [class*='col-'] {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-}
-
-/* Estilos para las tarjetas de acciones rápidas */
-.action-card {
-    height: 120px;
+  }
+  
+  .equal-height-row .card {
+    flex: 1 1 auto;
+  }
+  
+  /* Asegurar alturas iguales en tarjetas */
+  .equal-height-cards {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .equal-height-cards > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .same-height-card {
+    height: 120px !important;
+    margin-bottom: 15px;
+  }
+  
+  /* Estilos para las tarjetas de estadísticas */
+  .info-box {
+    min-height: 120px;
+    transition: all 0.3s ease;
+  }
+  
+  .info-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+  
+  .small-box {
+    transition: all 0.3s ease;
+  }
+  
+  .small-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+  
+  /* Estilos para las tarjetas de acciones rápidas */
+  .action-card {
+    height: 120px !important;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: all 0.3s;
-}
-
-.action-card:hover {
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+  }
+  
+  .action-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* Asegurar espaciado entre secciones */
-.section-header {
-    margin-top: 30px;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
+  }
+  
+  /* Separador de secciones */
+  .section-divider {
+    height: 1px;
+    background-color: #ddd;
+    margin: 30px 0;
+  }
+  
+  /* Mejorar el espaciado general */
+  .container-fluid {
+    padding-top: 0;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .card {
+    margin-bottom: 25px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  }
+  
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  
+  /* Timeline mejorada */
+  .timeline {
+    margin-top: 10px;
+  }
+  
+  .timeline-item {
+    margin-bottom: 15px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.05);
+  }
+  
+  /* Responsive fixes */
+  @media (max-width: 768px) {
+    .same-height-card {
+      height: auto !important;
+    }
+    
+    .action-card {
+      height: auto !important;
+    }
+  }
+  
+  /* Optimizar espaciado vertical */
+  .main-header {
+    margin-bottom: 0 !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: 1rem !important;
+  }
+  
+  .row {
+    margin-bottom: 1rem;
+  }
