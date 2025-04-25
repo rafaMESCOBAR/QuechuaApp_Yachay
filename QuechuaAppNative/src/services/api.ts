@@ -184,10 +184,15 @@ export class ApiService {
       
       const token = await this.getAuthToken();
       console.log('Token para perfil:', token);
+      console.log('URL para obtener perfil:', `${API_URL}/users/profile/`);
       
       if (!token) {
         throw new Error('No hay sesión activa');
       }
+      
+      // Usar un AbortController para implementar un timeout manualmente
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos de timeout
       
       const response = await fetch(`${API_URL}/users/profile/`, {
         method: 'GET',
@@ -195,18 +200,32 @@ export class ApiService {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal
       });
-
+      
+      // Limpiar el timeout
+      clearTimeout(timeoutId);
+  
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+      
       if (!response.ok) {
         console.error('Error en respuesta:', response.status, response.statusText);
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Detalles del error:', errorData);
-        throw new Error('Error al obtener perfil');
+        throw new Error(`Error al obtener perfil: ${response.status}`);
       }
-
-      return await response.json();
+  
+      const data = await response.json();
+      console.log('Datos de perfil recibidos:', data);
+      return data;
     } catch (error) {
       console.error('Error detallado al obtener perfil:', error);
+      
+      // Comprobar el tipo de error correctamente
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('La solicitud tomó demasiado tiempo. Verifica tu conexión a internet.');
+        }
+      }
+      
       throw error;
     }
   }
