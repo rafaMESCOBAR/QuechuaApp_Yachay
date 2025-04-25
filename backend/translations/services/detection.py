@@ -1,4 +1,4 @@
-#services/detection.py
+# services/detection.py
 
 from ultralytics import YOLO
 import numpy as np
@@ -19,11 +19,12 @@ class ObjectDetectionService:
     def model(self):
         if self._model is None:
             try:
-                self._model = YOLO('yolov8n.pt')
-                logger.info("Modelo YOLO cargado exitosamente")
+                # Usar YOLOv8s que es más preciso que YOLOv8n
+                self._model = YOLO('yolov8s.pt')
+                logger.info("Modelo YOLOv8s cargado exitosamente")
             except Exception as e:
-                logger.error(f"Error al cargar el modelo YOLO: {str(e)}")
-                raise RuntimeError(f"Error al cargar el modelo YOLO: {str(e)}")
+                logger.error(f"Error al cargar el modelo YOLOv8s: {str(e)}")
+                raise RuntimeError(f"Error al cargar el modelo YOLOv8s: {str(e)}")
         return self._model
 
     def validate_image(self, image_file):
@@ -46,8 +47,8 @@ class ObjectDetectionService:
             image = image.convert('RGB')
             image_np = np.array(image)
             
-            # Realizar detección
-            results = self.model(image_np)[0]
+            # Realizar detección con YOLOv8s
+            results = self.model(image_np, verbose=False)[0]
             
             filtered_detections = []
             
@@ -60,7 +61,7 @@ class ObjectDetectionService:
                     
                     filtered_detections.append({
                         'label': label.lower(),  # Convertir a minúsculas para consistencia
-                        'confidence': float(confidence * 100),
+                        'confidence': float(confidence),
                         'bbox': [
                             float(y1), float(x1),
                             float(y2), float(x2)
@@ -70,9 +71,9 @@ class ObjectDetectionService:
             # Ordenar por confianza
             filtered_detections.sort(key=lambda x: x['confidence'], reverse=True)
             
-            logger.info(f"YOLO Detección exitosa: {len(filtered_detections)} objetos encontrados")
+            logger.info(f"YOLOv8s Detección exitosa: {len(filtered_detections)} objetos encontrados")
             return filtered_detections
             
         except Exception as e:
-            logger.error(f"Error en la detección YOLO: {str(e)}")
+            logger.error(f"Error en la detección YOLOv8s: {str(e)}")
             raise RuntimeError(f"Error en la detección: {str(e)}")
