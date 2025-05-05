@@ -9,12 +9,13 @@ import { Ionicons } from '@expo/vector-icons';
 // Pantallas existentes
 import HomeScreen from './src/screens/HomeScreen';
 import { CameraScreen } from './src/components/CameraScreen';
-
-// Nuevas pantallas
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-import ExercisesScreen from './src/screens/ExercisesScreen';
+
+// Nuevas pantallas
+import PracticeScreen from './src/screens/PracticeScreen';
+import ProgressScreen from './src/screens/ProgressScreen';
 
 // Contexto de autenticación
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -28,7 +29,8 @@ type AuthStackParamList = {
 type AppTabsParamList = {
   Home: undefined;
   Camera: undefined;
-  Exercises: undefined;
+  Practice: undefined;
+  Progress: undefined;
   Profile: undefined;
 };
 
@@ -57,7 +59,7 @@ const AuthStackScreen = () => (
   </AuthStack.Navigator>
 );
 
-// Navegación principal de la aplicación
+// Navegación principal de la aplicación actualizada
 const AppTabsScreen = () => (
   <AppTabs.Navigator
     screenOptions={({ route }) => ({
@@ -69,8 +71,10 @@ const AppTabsScreen = () => (
           iconName = focused ? 'home' : 'home-outline';
         } else if (route.name === 'Camera') {
           iconName = focused ? 'camera' : 'camera-outline';
-        } else if (route.name === 'Exercises') {
+        } else if (route.name === 'Practice') {
           iconName = focused ? 'book' : 'book-outline';
+        } else if (route.name === 'Progress') {
+          iconName = focused ? 'stats-chart' : 'stats-chart-outline';
         } else if (route.name === 'Profile') {
           iconName = focused ? 'person' : 'person-outline';
         }
@@ -83,7 +87,8 @@ const AppTabsScreen = () => (
   >
     <AppTabs.Screen name="Home" component={HomeScreen} />
     <AppTabs.Screen name="Camera" component={CameraScreen} />
-    <AppTabs.Screen name="Exercises" component={ExercisesScreen} />
+    <AppTabs.Screen name="Practice" component={PracticeScreen} options={{ tabBarLabel: 'Practicar' }} />
+    <AppTabs.Screen name="Progress" component={ProgressScreen} options={{ tabBarLabel: 'Progreso' }} />
     <AppTabs.Screen name="Profile" component={ProfileScreen} />
   </AppTabs.Navigator>
 );

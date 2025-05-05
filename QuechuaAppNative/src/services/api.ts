@@ -427,4 +427,273 @@ export class ApiService {
       throw error;
     }
   }
+
+  static async getExercisesByCategory(category: string) {
+    try {
+      await this.checkConnectivity();
+      
+      const token = await this.getAuthToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+      
+      const response = await fetch(`${API_URL}/practice/get_exercises_by_category/?category=${category}`, {
+        headers,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener ejercicios');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error obteniendo ejercicios por categoría:', error);
+      throw error;
+    }
+  }
+
+  static async getUserProgress() {
+    try {
+      await this.checkConnectivity();
+      
+      const token = await this.getAuthToken();
+      if (!token) {
+        throw new Error('No hay sesión activa');
+      }
+      
+      const response = await fetch(`${API_URL}/progress/user_progress/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener progreso');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error obteniendo progreso:', error);
+      throw error;
+    }
+  }
+
+// Método para registrar puntos de ambos modos (detección y práctica)
+static async recordPoints(points: number, mode: 'detection' | 'practice', category?: string) {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/progress/record_points/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        points,
+        mode,
+        category,
+        timestamp: new Date().toISOString()
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al registrar puntos');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error registrando puntos:', error);
+    throw error;
+  }
+}
+
+// Método para obtener categorías de práctica
+static async getPracticeCategories() {
+  try {
+    await this.checkConnectivity();
+    
+    const response = await fetch(`${API_URL}/practice/categories/`);
+    
+    if (!response.ok) {
+      throw new Error('Error al obtener categorías');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo categorías:', error);
+    throw error;
+  }
+}
+
+// Método para actualizar el progreso del usuario después de completar ejercicios
+static async updateUserProgress(exerciseId: number, completed: boolean, score: number, mode: string) {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/progress/update/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        exercise_id: exerciseId,
+        completed,
+        score,
+        mode,
+        timestamp: new Date().toISOString()
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al actualizar progreso');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error actualizando progreso:', error);
+    throw error;
+  }
+}
+
+// Método para obtener rachas y recompensas del usuario
+static async getUserStreaksAndRewards() {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/progress/streaks-rewards/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al obtener rachas y recompensas');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo rachas y recompensas:', error);
+    throw error;
+  }
+}
+
+// Método para obtener estadísticas detalladas por categoría
+static async getCategoryStats() {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/progress/category-stats/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al obtener estadísticas por categoría');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo estadísticas por categoría:', error);
+    throw error;
+  }
+}
+
+// Método para iniciar una sesión de práctica
+static async startPracticeSession(category: string) {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/practice/start-session/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        category,
+        start_time: new Date().toISOString()
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al iniciar sesión de práctica');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error iniciando sesión de práctica:', error);
+    throw error;
+  }
+}
+
+// Método para finalizar una sesión de práctica
+static async endPracticeSession(sessionId: number, stats: any) {
+  try {
+    await this.checkConnectivity();
+    
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+    
+    const response = await fetch(`${API_URL}/practice/end-session/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        end_time: new Date().toISOString(),
+        ...stats
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al finalizar sesión de práctica');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error finalizando sesión de práctica:', error);
+    throw error;
+  }
+}
+
+
 }

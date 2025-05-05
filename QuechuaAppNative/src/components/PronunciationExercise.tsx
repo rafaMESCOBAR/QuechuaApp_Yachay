@@ -63,28 +63,78 @@ export const PronunciationExercise: React.FC<PronunciationExerciseProps> = ({
   const maxLevelRef = useRef<number>(-60);
   const audioSamplesCountRef = useRef(0);
   const audioLevelsSumRef = useRef(0);
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const completionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Animación para el medidor de audio
   const animatedVolume = useRef(new Animated.Value(-60)).current;
+// Actualizar la animación de volumen
+useEffect(() => {
+  Animated.timing(animatedVolume, {
+    toValue: currentVolume,
+    duration: 100,
+    useNativeDriver: false
+  }).start();
+}, [currentVolume]);
 
-  // Actualizar la animación de volumen
-  useEffect(() => {
-    Animated.timing(animatedVolume, {
-      toValue: currentVolume,
-      duration: 100,
-      useNativeDriver: false
-    }).start();
-  }, [currentVolume]);
+// Añadir un useEffect que se ejecute cuando cambia la palabra a pronunciar
+useEffect(() => {
+  // Reiniciar todos los estados
+  setRecording(null);
+  setIsRecording(false);
+  setIsProcessing(false);
+  setAttempts(0);
+  setFeedback('');
+  setPoints(25 * difficulty);
+  setShowSuccess(false);
+  setTranscription('');
+  setSimilarity(0);
+  setDetailedFeedback([]);
+  setCurrentVolume(-60);
+  setAudioActivity(false);
+  
+  // Limpiar temporizadores
+  if (maxDurationTimerRef.current) {
+    clearTimeout(maxDurationTimerRef.current);
+    maxDurationTimerRef.current = null;
+  }
+  
+  if (completionTimerRef.current) {
+    clearTimeout(completionTimerRef.current);
+    completionTimerRef.current = null;
+  }
+  
+  if (safetyTimerRef.current) {
+    clearTimeout(safetyTimerRef.current);
+    safetyTimerRef.current = null;
+  }
+  
+  // Limpiar estado de audio
+  resetAudioState();
+}, [wordToProunounce, difficulty]);
 
-  // Limpiar cuando el componente se desmonta
-  useEffect(() => {
-    return () => {
-      if (maxDurationTimerRef.current) {
-        clearTimeout(maxDurationTimerRef.current);
-      }
-      resetAudioState();
-    };
-  }, []);
+// Limpiar cuando el componente se desmonta
+useEffect(() => {
+  return () => {
+    if (maxDurationTimerRef.current) {
+      clearTimeout(maxDurationTimerRef.current);
+    }
+    
+    // Limpiar temporizador de finalización
+    if (completionTimerRef.current) {
+      clearTimeout(completionTimerRef.current);
+      completionTimerRef.current = null;
+    }
+    
+    // NUEVO: Limpiar temporizador de seguridad
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
+    
+    resetAudioState();
+  };
+}, []);
   
   // Función para reproducir la pronunciación correcta
   const handlePlayPronunciation = async () => {
@@ -245,7 +295,6 @@ const startRecording = async () => {
   }
 };
 
-// Detener grabación y procesar audio
 const stopRecording = async () => {
   if (!recordingRef.current || !isRecordingRef.current) {
     console.log("No hay grabación activa que detener");
@@ -258,6 +307,20 @@ const stopRecording = async () => {
     setIsRecording(false);
     setIsProcessing(true);
     setFeedback('Analizando tu pronunciación...');
+    
+    // NUEVO: Configurar temporizador de seguridad
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+    }
+    safetyTimerRef.current = setTimeout(() => {
+      console.log("Temporizador de seguridad activado para evitar spinner infinito");
+      if (isProcessing) {
+        setIsProcessing(false);
+        if (attempts >= 3) {
+          completeExercise(false, 0);
+        }
+      }
+    }, 10000); // 10 segundos como máximo
     
     // Limpiar temporizador
     if (maxDurationTimerRef.current) {
@@ -293,10 +356,28 @@ const stopRecording = async () => {
         console.log(`Tamaño del archivo de audio: ${fileSize} bytes`);
       }
       
-      // Incrementar intentos
+      // MODIFICADO: Incrementar intentos con validación de máximo
       setAttempts(prev => {
         const newAttempts = prev + 1;
         console.log(`Intento ${newAttempts} de 3`);
+        
+        // Si excede el máximo, completar el ejercicio
+        if (newAttempts > 3) {
+          console.log("Máximo de intentos excedido (3)");
+          setIsProcessing(false);
+          
+          // Limpiar temporizador de seguridad
+          if (safetyTimerRef.current) {
+            clearTimeout(safetyTimerRef.current);
+            safetyTimerRef.current = null;
+          }
+          
+          // Programar completar ejercicio
+          setTimeout(() => completeExercise(false, 0), 500);
+          
+          return 3; // Mantener en 3 como máximo
+        }
+        
         return newAttempts;
       });
       
@@ -310,6 +391,13 @@ const stopRecording = async () => {
         setFeedback("No pudimos detectar tu voz. Habla más fuerte por favor.");
         setTimeout(() => handlePlayPronunciation(), 1000);
         setIsProcessing(false);
+        
+        // Limpiar temporizador de seguridad
+        if (safetyTimerRef.current) {
+          clearTimeout(safetyTimerRef.current);
+          safetyTimerRef.current = null;
+        }
+        
         return;
       }
       
@@ -336,6 +424,12 @@ const stopRecording = async () => {
           // En producción, mostrar un error claro
           setFeedback("No se pudo analizar el audio. Verifica tu conexión.");
           setIsProcessing(false);
+          
+          // Limpiar temporizador de seguridad
+          if (safetyTimerRef.current) {
+            clearTimeout(safetyTimerRef.current);
+            safetyTimerRef.current = null;
+          }
         }
       }
       
@@ -343,17 +437,35 @@ const stopRecording = async () => {
       console.error('Error verificando archivo de audio:', error);
       setFeedback('Error al analizar el audio. Intenta de nuevo.');
       setIsProcessing(false);
+      
+      // Limpiar temporizador de seguridad
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
     }
   } catch (error) {
     console.error('Error al detener grabación:', error);
     setFeedback('Error al procesar audio');
     setIsProcessing(false);
+    
+    // Limpiar temporizador de seguridad
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
   }
 };
 
-// Procesar resultado de reconocimiento de voz
+// Modificar la función processSpeechResult
 const processSpeechResult = (result: { success: boolean; transcription: string; similarity: number }) => {
   console.log("Respuesta del análisis:", result);
+  
+  // Limpiar temporizador de seguridad
+  if (safetyTimerRef.current) {
+    clearTimeout(safetyTimerRef.current);
+    safetyTimerRef.current = null;
+  }
   
   // Asegurar que la similitud nunca sea negativa
   const validatedSimilarity = Math.max(0, result.similarity);
@@ -407,16 +519,18 @@ const processSpeechResult = (result: { success: boolean; transcription: string; 
   setFeedback(feedbackMessage);
   setDetailedFeedback(feedbackDetails);
   
+  // IMPORTANTE: Asegurar que isProcessing siempre se restablezca
+  setIsProcessing(false);
+  
   // Determinar si continuar o completar
   if (success || attempts >= 3) {
     completeExercise(success, validatedSimilarity);
   } else {
     // Otro intento
-    setIsProcessing(false);
     setTimeout(() => handlePlayPronunciation(), 1500);
   }
 };
-  
+
   // Función para modo desarrollo (simula reconocimiento)
   const processSpeechDevMode = (fileSize: number) => {
     // Simular diferentes escenarios basados en el tamaño del archivo y el intento
