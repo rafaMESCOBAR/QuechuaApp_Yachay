@@ -30,14 +30,19 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.conf import settings
 
+# Imports ACTUALIZADOS - Añadir los nuevos modelos
+from django.db.models import Sum, Count, Avg  # Nuevo
+import random  # Nuevo
 from .models import (
     ObjectTranslation, UserProfile, Exercise, UserProgress,
-    Achievement, UserAchievement, ActivityLog, PronunciationRecord
+    Achievement, UserAchievement, ActivityLog, PronunciationRecord,
+    ProgressCategory, StreakReward, PracticeSession, AnalyticsEvent
 )
 from .serializers import (
     ObjectTranslationSerializer, UserSerializer, UserProfileSerializer,
     ExerciseSerializer, UserProgressSerializer, AchievementSerializer,
-    UserAchievementSerializer, ActivityLogSerializer, PronunciationRecordSerializer
+    UserAchievementSerializer, ActivityLogSerializer, PronunciationRecordSerializer,
+    ProgressCategorySerializer, StreakRewardSerializer, PracticeSessionSerializer  # Nuevos serializers añadidos
 )
 from .services.detection import ObjectDetectionService
 from .services.exercise_generator import ExerciseGeneratorService
@@ -222,11 +227,39 @@ class ObjectDetectionViewSet(viewsets.ViewSet):
 
             results.sort(key=lambda x: x['confidence'], reverse=True)
 
-            response_data = {
-                'objects': results,
-                'count': len(results),
-                'message': 'Detección exitosa' if results else 'No se encontraron objetos reconocibles'
-            }
+            # Añadir puntos al usuario cuando se hace una detección exitosa
+            if results and request.user.is_authenticated:
+                # Asignar puntos basados en la cantidad de objetos detectados
+                detection_points = min(len(results), 5) * 10  # Limitar a 5 objetos máximo
+                
+                # Actualizar puntos de usuario específicamente en el modo "detection"
+                request.user.profile.add_experience_by_mode(detection_points, 'detection')
+                
+                # Registrar actividad
+                ActivityLog.objects.create(
+                    user=request.user,
+                    activity_type='object_detection',
+                    mode='detection',
+                    points=detection_points,
+                    details={
+                        'detected_objects': [obj['label'] for obj in results],
+                        'confidence_levels': [obj['confidence'] for obj in results]
+                    }
+                )
+                
+                # Agregar los puntos a la respuesta para informar al usuario
+                response_data = {
+                    'objects': results,
+                    'count': len(results),
+                    'message': 'Detección exitosa' if results else 'No se encontraron objetos reconocibles',
+                    'points_earned': detection_points
+                }
+            else:
+                response_data = {
+                    'objects': results,
+                    'count': len(results),
+                    'message': 'Detección exitosa' if results else 'No se encontraron objetos reconocibles'
+                }
 
             return Response(response_data)
             
@@ -366,70 +399,106 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                 {'error': f'Error interno del servidor: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )        
-    @action(detail=True, methods=['POST'])
-    def submit_answer(self, request, pk=None):
-        """Verifica la respuesta de un ejercicio y actualiza el progreso del usuario"""
-        if not request.user.is_authenticated:
-            return Response({'error': 'Debe iniciar sesión para enviar respuestas'}, 
-                           status=status.HTTP_401_UNAUTHORIZED)
-                           
-        exercise = self.get_object()
-        answer = request.data.get('answer')
+@action(detail=True, methods=['POST'])
+def submit_answer(self, request, pk=None):
+    """Verifica la respuesta de un ejercicio y actualiza el progreso del usuario"""
+    if not request.user.is_authenticated:
+        return Response({'error': 'Debe iniciar sesión para enviar respuestas'}, 
+                       status=status.HTTP_401_UNAUTHORIZED)
+                       
+    exercise = self.get_object()
+    answer = request.data.get('answer')
+    mode = request.data.get('mode', 'detection')  # Añadir modo (detection o practice)
+    
+    if not answer:
+        return Response({'error': 'Se requiere una respuesta'}, 
+                       status=status.HTTP_400_BAD_REQUEST)
         
-        if not answer:
-            return Response({'error': 'Se requiere una respuesta'}, 
-                           status=status.HTTP_400_BAD_REQUEST)
-            
-        # Verificar respuesta (lógica simplificada)
-        is_correct = False
-        if exercise.type == 'pronunciation':
-            # Para ejercicios de pronunciación, siempre aceptamos como correcto
-            # y lo guardamos para revisión por hablantes nativos
-            is_correct = True
-        else:
-            is_correct = (answer.lower().strip() == exercise.answer.lower().strip())
+    # Verificar respuesta
+    is_correct = False
+    if exercise.type == 'pronunciation':
+        # Para ejercicios de pronunciación, siempre aceptamos como correcto
+        is_correct = True
+    else:
+        is_correct = (answer.lower().strip() == exercise.answer.lower().strip())
+    
+    # Actualizar progreso del usuario
+    progress, created = UserProgress.objects.get_or_create(
+        user=request.user, 
+        exercise=exercise,
+        defaults={'attempts': 1, 'correct': is_correct, 'completed': is_correct}
+    )
+    
+    if not created:
+        progress.attempts += 1
+        progress.correct = is_correct or progress.correct
+        progress.completed = is_correct or progress.completed
+        progress.save()
         
-        # Actualizar progreso del usuario
-        progress, created = UserProgress.objects.get_or_create(
-            user=request.user, 
-            exercise=exercise,
-            defaults={'attempts': 1, 'correct': is_correct, 'completed': is_correct}
+    # Dar puntos al usuario si es correcto
+    level_up = False
+    points_earned = 0
+    if is_correct:
+        points_earned = exercise.points
+        
+        # Actualizar puntos según el modo (detection o practice)
+        request.user.profile.add_experience_by_mode(points_earned, mode)
+        request.user.profile.update_streak()
+        
+        # Registrar actividad
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type='exercise_completed',
+            mode=mode,  # Guardar el modo
+            category=exercise.category,  # Guardar la categoría
+            points=points_earned,
+            details={
+                'exercise_id': exercise.id,
+                'exercise_type': exercise.type,
+                'object_translation_id': exercise.object_translation.id,
+                'is_correct': is_correct
+            }
         )
         
-        if not created:
-            progress.attempts += 1
-            progress.correct = is_correct or progress.correct
-            progress.completed = is_correct or progress.completed
-            progress.save()
-            
-        # Dar puntos al usuario si es correcto
-        level_up = False
-        points_earned = 0
-        if is_correct:
-            points_earned = exercise.points
-            level_up = request.user.profile.add_experience(points_earned)
-            request.user.profile.update_streak()
-            
-            # Registrar actividad
-            ActivityLog.objects.create(
-                user=request.user,
-                activity_type='exercise_completed',
-                points=points_earned,
-                details={
-                    'exercise_id': exercise.id,
-                    'exercise_type': exercise.type,
-                    'object_translation_id': exercise.object_translation.id,
-                    'is_correct': is_correct
-                }
-            )
-            
-        return Response({
-            'correct': is_correct,
-            'feedback': 'Correcto!' if is_correct else f'Incorrecto. La respuesta correcta es: {exercise.answer}',
-            'points_earned': points_earned,
-            'level_up': level_up
-        })
-
+        # Actualizar ProgressCategory
+        category, created = ProgressCategory.objects.get_or_create(
+            user=request.user,
+            category=exercise.category,
+            defaults={
+                'points': 0,
+                'exercises_completed': 0,
+                'accuracy_rate': 0.0
+            }
+        )
+        
+        category.points += points_earned
+        category.exercises_completed += 1
+        
+        # Calcular tasa de precisión
+        total_exercises = UserProgress.objects.filter(
+            user=request.user,
+            exercise__category=exercise.category
+        ).count()
+        
+        correct_exercises = UserProgress.objects.filter(
+            user=request.user,
+            exercise__category=exercise.category,
+            correct=True
+        ).count()
+        
+        if total_exercises > 0:
+            category.accuracy_rate = correct_exercises / total_exercises
+        
+        category.save()
+        
+    return Response({
+        'correct': is_correct,
+        'feedback': 'Correcto!' if is_correct else f'Incorrecto. La respuesta correcta es: {exercise.answer}',
+        'points_earned': points_earned,
+        'level_up': level_up,
+        'mode': mode,
+        'category': exercise.category
+    })
 class UserProgressViewSet(viewsets.ModelViewSet):
     queryset = UserProgress.objects.all()
     serializer_class = UserProgressSerializer
@@ -995,3 +1064,681 @@ def google_login_view(request):
             {'error': f'Error en el servidor: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+    
+class PracticeViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    
+    @action(detail=False, methods=['GET'])
+    def categories(self, request):
+        """Obtiene las categorías disponibles para práctica"""
+        categories = [
+            {
+                'id': 'vocabulary',
+                'title': 'Vocabulario',
+                'description': 'Aprende nuevas palabras en quechua',
+                'icon': 'book',
+                'color': '#4CAF50',
+                'exercise_types': ['multiple_choice', 'fill_blanks', 'anagram']
+            },
+            {
+                'id': 'phrases',
+                'title': 'Frases Comunes',
+                'description': 'Domina frases cotidianas',
+                'icon': 'chatbubbles',
+                'color': '#2196F3',
+                'exercise_types': ['multiple_choice', 'fill_blanks']
+            },
+            {
+                'id': 'memory',
+                'title': 'Memoria',
+                'description': 'Desafía tu memoria con palabras',
+                'icon': 'brain',
+                'color': '#FF9800',
+                'exercise_types': ['matching']
+            },
+            {
+                'id': 'pronunciation',
+                'title': 'Pronunciación',
+                'description': 'Mejora tu pronunciación',
+                'icon': 'mic',
+                'color': '#9C27B0',
+                'exercise_types': ['pronunciation']
+            }
+        ]
+        return Response(categories)
+    
+    @action(detail=False, methods=['GET'])
+    def get_exercises_by_category(self, request):
+        """Obtiene ejercicios para una categoría específica"""
+        category = request.query_params.get('category')
+        if not category:
+            return Response({'error': 'Se requiere categoría'}, status=400)
+        
+        # Obtener traducciones según la categoría
+        if category == 'vocabulary':
+            translations = ObjectTranslation.objects.order_by('?')[:10]
+        elif category == 'phrases':
+            # Filtrar frases comunes (traducciones con más de una palabra)
+            translations = ObjectTranslation.objects.filter(
+                spanish__contains=' '
+            ).order_by('?')[:10]
+        elif category == 'memory':
+            translations = ObjectTranslation.objects.order_by('?')[:10]
+        elif category == 'pronunciation':
+            translations = ObjectTranslation.objects.order_by('?')[:10]
+        else:
+            return Response({'error': 'Categoría no válida'}, status=400)
+        
+        # Generar ejercicios
+        exercises = []
+        for trans in translations:
+            # Determinar tipo de ejercicio según categoría
+            exercise_types = {
+                'vocabulary': ['multiple_choice', 'fill_blanks', 'anagram'],
+                'phrases': ['multiple_choice', 'fill_blanks'],
+                'memory': ['matching'],
+                'pronunciation': ['pronunciation']
+            }
+            
+            exercise_type = random.choice(exercise_types[category])
+            
+            # Generar ejercicio del tipo seleccionado
+            exercise = Exercise.objects.create(
+                type=exercise_type,
+                category=category,  # Nuevo campo
+                object_translation=trans,
+                difficulty=request.user.profile.level if request.user.is_authenticated else 1,
+                question=self._generate_question(exercise_type, trans),
+                answer=trans.quechua,
+                distractors=self._generate_distractors(exercise_type, trans),
+                points=self._calculate_points(exercise_type),
+                metadata={
+                    'category': category,
+                    'time_limit': self._get_time_limit(exercise_type),
+                    'streak_bonus': True,
+                    'practice_mode': True
+                }
+            )
+            exercises.append(exercise)
+        
+        serializer = ExerciseSerializer(exercises, many=True)
+        return Response(serializer.data)
+    
+    def _generate_question(self, exercise_type, translation):
+        questions = {
+            'multiple_choice': f"¿Cómo se dice '{translation.spanish}' en quechua?",
+            'fill_blanks': f"Completa la palabra en quechua para '{translation.spanish}'",
+            'anagram': f"Ordena las letras para formar la palabra en quechua que significa '{translation.spanish}'",
+            'pronunciation': f"Practica la pronunciación de la palabra '{translation.quechua}' que significa '{translation.spanish}'",
+            'matching': f"Relaciona las palabras en español con su traducción en quechua"
+        }
+        return questions.get(exercise_type, "Práctica de quechua")
+    
+    def _generate_distractors(self, exercise_type, translation):
+        if exercise_type == 'multiple_choice':
+            other_translations = ObjectTranslation.objects.exclude(
+                id=translation.id
+            ).order_by('?')[:3]
+            return [t.quechua for t in other_translations]
+        elif exercise_type == 'matching':
+            other_translations = ObjectTranslation.objects.exclude(
+                id=translation.id
+            ).order_by('?')[:3]
+            # CORRECCIÓN: Asegurar que cada par tenga un ID único
+            pairs = [{'id': 1, 'spanish': translation.spanish, 'quechua': translation.quechua}]
+            for i, trans in enumerate(other_translations, start=2):
+                pairs.append({'id': i, 'spanish': trans.spanish, 'quechua': trans.quechua})
+            return {'pairs': pairs}
+        elif exercise_type == 'fill_blanks':
+            return {'hint': f"La palabra tiene {len(translation.quechua)} letras"}
+        return None
+    
+    def _calculate_points(self, exercise_type):
+        base_points = {
+            'multiple_choice': 10,
+            'fill_blanks': 15,
+            'anagram': 20,
+            'pronunciation': 25,
+            'matching': 18
+        }
+        return base_points.get(exercise_type, 10)
+    
+    def _get_time_limit(self, exercise_type):
+        time_limits = {
+            'multiple_choice': 30,
+            'fill_blanks': 45,
+            'anagram': 60,
+            'pronunciation': 60,
+            'matching': 90
+        }
+        return time_limits.get(exercise_type, 30)
+    
+    @action(detail=False, methods=['POST'])
+    def start_session(self, request):
+        """Inicia una nueva sesión de práctica"""
+        category = request.data.get('category')
+        if not category:
+            return Response({'error': 'Se requiere categoría'}, status=400)
+        
+        session = PracticeSession.objects.create(
+            user=request.user,
+            category=category,
+            start_time=timezone.now()
+        )
+        
+        serializer = PracticeSessionSerializer(session)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['POST'])
+    def end_session(self, request):
+        """Finaliza una sesión de práctica"""
+        session_id = request.data.get('session_id')
+        if not session_id:
+            return Response({'error': 'Se requiere ID de sesión'}, status=400)
+        
+        try:
+            session = PracticeSession.objects.get(id=session_id, user=request.user)
+            session.end_time = timezone.now()
+            session.exercises_completed = request.data.get('exercises_completed', 0)
+            session.points_earned = request.data.get('points_earned', 0)
+            session.accuracy_rate = request.data.get('accuracy_rate', 0.0)
+            session.calculate_duration()
+            session.save()
+            
+            # Actualizar el perfil del usuario
+            profile = request.user.profile
+            profile.total_practice_time += session.duration_minutes
+            profile.save()
+            
+            serializer = PracticeSessionSerializer(session)
+            return Response(serializer.data)
+        except PracticeSession.DoesNotExist:
+            return Response({'error': 'Sesión no encontrada'}, status=404)
+
+
+@action(detail=False, methods=['GET'])
+def random_exercises(self, request):
+    """Proporciona un conjunto aleatorio de ejercicios para práctica rápida"""
+    category = request.query_params.get('category', 'vocabulary')
+    count = int(request.query_params.get('count', '5'))
+    
+    # Obtener traducciones aleatorias para la categoría seleccionada
+    translations = ObjectTranslation.objects.order_by('?')[:count]
+    
+    exercises = []
+    for translation in translations:
+        # Asignar tipos de ejercicio según la categoría
+        if category == 'vocabulary':
+            exercise_type = random.choice(['multiple_choice', 'fill_blanks', 'anagram'])
+        elif category == 'pronunciation':
+            exercise_type = 'pronunciation'
+        elif category == 'memory':
+            exercise_type = 'matching'
+        else:
+            exercise_type = random.choice(['multiple_choice', 'fill_blanks'])
+        
+        # Crear ejercicio temporal
+        exercise = Exercise.objects.create(
+            type=exercise_type,
+            category=category,
+            object_translation=translation,
+            difficulty=request.user.profile.level if request.user.is_authenticated else 1,
+            question=self._generate_question(exercise_type, translation),
+            answer=translation.quechua,
+            distractors=self._generate_distractors(exercise_type, translation),
+            points=self._calculate_points(exercise_type),
+            metadata={
+                'practice_mode': True,
+                'time_limit': self._get_time_limit(exercise_type),
+                'category': category
+            }
+        )
+        exercises.append(exercise)
+    
+    serializer = ExerciseSerializer(exercises, many=True)
+    return Response(serializer.data)
+class ProgressViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['GET'])
+    def user_progress(self, request):
+        """Obtiene el progreso completo del usuario incluyendo puntos por modo"""
+        user = request.user
+        profile = user.profile
+        
+        # Actividad semanal
+        weekly_activity = []
+        for i in range(7):
+            date = timezone.now() - timedelta(days=i)
+            day_points = ActivityLog.objects.filter(
+                user=user,
+                timestamp__date=date.date()
+            ).aggregate(total=Sum('points'))['total'] or 0
+            
+            weekly_activity.append({
+                'day': date.strftime('%a'),
+                'points': day_points
+            })
+        weekly_activity.reverse()
+        
+        # Obtener logros
+        user_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+        # Extraer los objetos Achievement de UserAchievement para serializar correctamente
+        achievement_objects = [ua.achievement for ua in user_achievements]
+        
+        # Actividad reciente (últimos 7 días)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        recent_activity = (
+            ActivityLog.objects.filter(
+                user=user,
+                timestamp__gte=seven_days_ago
+            )
+            .values('timestamp__date')
+            .annotate(
+                points_earned=Sum('points'),
+                exercises_count=Count('id')
+            )
+            .order_by('-timestamp__date')
+        )
+        
+        # Estadísticas por categoría
+        stats_by_category = ProgressCategory.objects.filter(user=user).values(
+            'category'
+        ).annotate(
+            total_points=Sum('points'),
+            total_exercises=Sum('exercises_completed'),
+            avg_accuracy=Avg('accuracy_rate')
+        )
+        
+        # Preparar datos para el frontend
+        progress_data = {
+            'level': profile.level,
+            'experience_points': profile.experience_points,
+            'experience_to_next_level': profile.level * 100,
+            'streak_days': profile.streak_days,
+            'total_points': profile.total_points,
+            'detection_points': profile.detection_points,
+            'practice_points': profile.practice_points,
+            'weekly_activity': weekly_activity,
+            'exercises_completed': UserProgress.objects.filter(
+                user=user, completed=True
+            ).count(),
+            'accuracy_rate': self._calculate_accuracy(user),
+            'achievements': AchievementSerializer(achievement_objects, many=True).data,
+            'recent_activity': self._format_recent_activity(recent_activity),
+            'stats_by_category': self._format_category_stats(stats_by_category)
+        }
+        
+        return Response(progress_data)
+    
+    def _calculate_accuracy(self, user):
+        """Calcula precisión del usuario"""
+        attempts = UserProgress.objects.filter(user=user)
+        if not attempts.exists():
+            return 0
+        
+        correct = attempts.filter(correct=True).count()
+        return int((correct / attempts.count()) * 100)
+    
+    def _format_recent_activity(self, activity_logs):
+        """Formatea actividad reciente para gráficos"""
+        return [
+            {
+                'date': str(entry['timestamp__date']),
+                'points_earned': entry['points_earned'],
+                'exercises_count': entry['exercises_count']
+            }
+            for entry in activity_logs
+        ]
+    
+    def _format_category_stats(self, stats):
+        """Formatea estadísticas por categoría"""
+        formatted = {
+            'vocabulary': 0,
+            'pronunciation': 0,
+            'grammar': 0,
+            'detection': 0,
+            'phrases': 0,
+            'memory': 0
+        }
+        
+        for stat in stats:
+            if stat['category'] in formatted:
+                formatted[stat['category']] = stat['total_points']
+        
+        return formatted
+    
+    @action(detail=False, methods=['POST'])
+    def record_points(self, request):
+        """Registra puntos con modo específico"""
+        points = request.data.get('points', 0)
+        mode = request.data.get('mode', 'detection')
+        category = request.data.get('category')
+        
+        profile = request.user.profile
+        profile.add_experience_by_mode(points, mode)
+        profile.update_streak()
+        
+        # Registrar en ActivityLog
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type=f'{mode}_activity',
+            mode=mode,
+            category=category,
+            points=points,
+            timestamp=timezone.now()
+        )
+        
+        # Actualizar ProgressCategory si aplica
+        if category:
+            progress_category, created = ProgressCategory.objects.get_or_create(
+                user=request.user,
+                category=category
+            )
+            progress_category.points += points
+            progress_category.exercises_completed += 1
+            progress_category.save()
+        
+        # Verificar logros
+        self._check_achievements(request.user, profile)
+        
+        return Response({
+            'success': True,
+            'points_added': points,
+            'total_points': profile.total_points,
+            'detection_points': profile.detection_points,
+            'practice_points': profile.practice_points,
+            'level': profile.level,
+            'streak_days': profile.streak_days
+        })
+    
+    def _check_achievements(self, user, profile):
+        """Verifica y asigna logros"""
+        # Verificar logros por nivel
+        level_achievements = Achievement.objects.filter(
+            achievement_type='level',
+            required_value__lte=profile.level
+        )
+        
+        # Verificar logros por racha
+        streak_achievements = Achievement.objects.filter(
+            achievement_type='streak',
+            required_value__lte=profile.streak_days
+        )
+        
+        # Verificar logros por puntos
+        points_achievements = Achievement.objects.filter(
+            achievement_type='points',
+            required_value__lte=profile.total_points
+        )
+        
+        # Asignar logros no obtenidos aún
+        for achievement in level_achievements | streak_achievements | points_achievements:
+            UserAchievement.objects.get_or_create(
+                user=user,
+                achievement=achievement
+            )
+    
+    @action(detail=False, methods=['GET'])
+    def streaks_rewards(self, request):
+        """Obtiene información de rachas y recompensas"""
+        profile = request.user.profile
+        
+        # Obtener recompensas por racha
+        streak_rewards = StreakReward.objects.order_by('streak_days')
+        earned_rewards = [
+            reward for reward in streak_rewards 
+            if reward.streak_days <= profile.streak_days
+        ]
+        
+        # Próxima recompensa
+        next_reward = StreakReward.objects.filter(
+            streak_days__gt=profile.streak_days
+        ).order_by('streak_days').first()
+        
+        return Response({
+            'current_streak': profile.streak_days,
+            'max_streak': profile.max_streak,
+            'earned_rewards': StreakRewardSerializer(earned_rewards, many=True).data,
+            'next_reward': StreakRewardSerializer(next_reward).data if next_reward else None
+        })
+    
+    @action(detail=False, methods=['GET'])
+    def category_stats(self, request):
+        """Obtiene estadísticas detalladas por categoría"""
+        stats = ProgressCategory.objects.filter(user=request.user)
+        serializer = ProgressCategorySerializer(stats, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['POST'])
+    def sync_analytics(self, request):
+        """Sincroniza eventos de analytics desde el frontend"""
+        try:
+            events = request.data.get('events', [])
+            
+            for event in events:
+                AnalyticsEvent.objects.create(
+                    user=request.user,
+                    category=event.get('category', ''),
+                    event_type=event.get('type', ''),
+                    duration=event.get('duration', 0),
+                    score=event.get('score', 0),
+                    timestamp=timezone.now()
+                )
+            
+            return Response({
+                'success': True,
+                'synced_count': len(events)
+            })
+        except Exception as e:
+            logger.error(f"Error sincronizando analytics: {str(e)}")
+            return Response({'error': str(e)}, status=500)
+        
+@action(detail=False, methods=['GET'])
+def detailed_stats(self, request):
+   
+    user = request.user
+    profile = user.profile
+    
+    # Estadísticas generales
+    stats = {
+        'general': {
+            'level': profile.level,
+            'total_points': profile.total_points,
+            'experience_points': profile.experience_points,
+            'next_level_at': profile.level * 100,
+            'progress_percentage': (profile.experience_points / (profile.level * 100)) * 100,
+            'streak_days': profile.streak_days,
+            'max_streak': profile.max_streak
+        },
+        'mode_stats': {
+            'detection': {
+                'points': profile.detection_points,
+                'percentage': (profile.detection_points / profile.total_points * 100) if profile.total_points > 0 else 0
+            },
+            'practice': {
+                'points': profile.practice_points,
+                'percentage': (profile.practice_points / profile.total_points * 100) if profile.total_points > 0 else 0
+            }
+        }
+    }
+    
+    # Estadísticas por categoría
+    categories = ProgressCategory.objects.filter(user=user)
+    category_stats = {}
+    
+    for cat in categories:
+        category_stats[cat.category] = {
+            'points': cat.points,
+            'exercises_completed': cat.exercises_completed,
+            'accuracy_rate': cat.accuracy_rate * 100  # Convertir a porcentaje
+        }
+    
+    stats['categories'] = category_stats
+    
+    # Logros
+    achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+    achievement_list = []
+    
+    for ua in achievements:
+        achievement_list.append({
+            'id': ua.achievement.id,
+            'name': ua.achievement.name,
+            'description': ua.achievement.description,
+            'icon': ua.achievement.icon,
+            'earned_at': ua.earned_at
+        })
+    
+    stats['achievements'] = achievement_list
+    
+    # Sesiones recientes
+    recent_sessions = PracticeSession.objects.filter(user=user).order_by('-start_time')[:5]
+    session_list = []
+    
+    for session in recent_sessions:
+        session_list.append({
+            'id': session.id,
+            'category': session.category,
+            'date': session.start_time.date(),
+            'duration_minutes': session.duration_minutes,
+            'exercises_completed': session.exercises_completed,
+            'points_earned': session.points_earned
+        })
+    
+    stats['recent_sessions'] = session_list
+    
+    # Gráfico de progreso semanal
+    today = timezone.now().date()
+    week_stats = []
+    
+    for i in range(7):
+        day = today - timedelta(days=i)
+        points = ActivityLog.objects.filter(
+            user=user, 
+            timestamp__date=day
+        ).aggregate(Sum('points'))['points__sum'] or 0
+        
+        week_stats.append({
+            'day': day.strftime('%a'),
+            'date': day,
+            'points': points
+        })
+    
+    week_stats.reverse()  # Poner en orden cronológico
+    stats['weekly_progress'] = week_stats
+    
+    return Response(stats)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_dashboard(request):
+    """Proporciona los datos necesarios para la pantalla principal"""
+    user = request.user
+    profile = user.profile
+    
+    # Obtener estadísticas generales
+    detection_points = profile.detection_points
+    practice_points = profile.practice_points
+    
+    # Verificar si hay una racha activa
+    today = timezone.now().date()
+    streak_active = False
+    
+    if profile.last_activity:
+        days_diff = (today - profile.last_activity).days
+        streak_active = days_diff <= 1
+    
+    # Obtener próxima recompensa por racha
+    next_reward = None
+    if streak_active:
+        next_reward = StreakReward.objects.filter(
+            streak_days__gt=profile.streak_days
+        ).order_by('streak_days').first()
+    
+    # Datos para gráfico de actividad reciente
+    last_week = today - timedelta(days=7)
+    activity_stats = (
+        ActivityLog.objects.filter(
+            user=user,
+            timestamp__gte=last_week
+        )
+        .values('timestamp__date', 'mode')
+        .annotate(
+            points=Sum('points'),
+            exercises=Count('id')
+        )
+        .order_by('timestamp__date')
+    )
+    
+    # Agrupar por modo
+    activity_by_date = {}
+    for stat in activity_stats:
+        date_key = stat['timestamp__date'].strftime('%Y-%m-%d')
+        if date_key not in activity_by_date:
+            activity_by_date[date_key] = {
+                'date': date_key,
+                'detection': 0,
+                'practice': 0,
+                'total': 0
+            }
+        
+        mode = stat['mode']
+        activity_by_date[date_key][mode] = stat['points']
+        activity_by_date[date_key]['total'] += stat['points']
+    
+    activity_chart = list(activity_by_date.values())
+    
+    # Obtener categorías más populares
+    top_categories = (
+        ProgressCategory.objects.filter(user=user)
+        .order_by('-points')[:3]
+    )
+    
+    categories = []
+    for cat in top_categories:
+        categories.append({
+            'name': cat.get_category_display(),
+            'category': cat.category,
+            'points': cat.points,
+            'exercises_completed': cat.exercises_completed
+        })
+    
+    # Logros recientes
+    recent_achievements = (
+        UserAchievement.objects.filter(user=user)
+        .select_related('achievement')
+        .order_by('-earned_at')[:3]
+    )
+    
+    achievements = []
+    for ua in recent_achievements:
+        achievements.append({
+            'id': ua.achievement.id,
+            'name': ua.achievement.name,
+            'description': ua.achievement.description,
+            'icon': ua.achievement.icon,
+            'earned_at': ua.earned_at
+        })
+    
+    # Construir respuesta
+    return Response({
+        'user': {
+            'username': user.username,
+            'level': profile.level,
+            'experience': profile.experience_points,
+            'next_level_at': profile.level * 100,
+            'progress': (profile.experience_points / (profile.level * 100)) * 100,
+            'streak_days': profile.streak_days,
+            'streak_active': streak_active
+        },
+        'stats': {
+            'detection_points': detection_points,
+            'practice_points': practice_points,
+            'total_points': profile.total_points,
+            'categories': categories
+        },
+        'next_reward': StreakRewardSerializer(next_reward).data if next_reward else None,
+        'activity_chart': activity_chart,
+        'recent_achievements': achievements,
+    })

@@ -1,5 +1,4 @@
-<!--backend\translations\templates\admin\index.html-->
-
+{# templates/admin/index.html - Versión optimizada del dashboard #}
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 {% load static %}
@@ -17,6 +16,11 @@
       <div class="card card-danger">
         <div class="card-header">
           <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Panel de Control de Yachay</h3>
+          <div class="card-tools">
+            <a href="?refresh_stats=1" class="btn btn-tool" title="Actualizar estadísticas">
+              <i class="fas fa-sync"></i>
+            </a>
+          </div>
         </div>
         <div class="card-body">
           <p class="lead">Desde este panel puedes gestionar todo el contenido de la aplicación Yachay para el aprendizaje de Quechua.</p>
@@ -51,7 +55,7 @@
                 <div class="icon">
                   <i class="fas fa-book"></i>
                 </div>
-                <a href="/admin/translations/objecttranslation/" class="small-box-footer">
+                <a href="{% url 'admin:translations_objecttranslation_changelist' %}" class="small-box-footer">
                   Administrar <i class="fas fa-arrow-circle-right"></i>
                 </a>
               </div>
@@ -66,7 +70,7 @@
                 <div class="icon">
                   <i class="fas fa-tasks"></i>
                 </div>
-                <a href="/admin/translations/exercise/" class="small-box-footer">
+                <a href="{% url 'admin:translations_exercise_changelist' %}" class="small-box-footer">
                   Administrar <i class="fas fa-arrow-circle-right"></i>
                 </a>
               </div>
@@ -74,7 +78,7 @@
           </div>
           
           <div class="text-center mt-3">
-            <a href="/admin/translations/objecttranslation/add/" class="btn btn-danger">
+            <a href="{% url 'admin:translations_objecttranslation_add' %}" class="btn btn-danger">
               <i class="fas fa-plus"></i> Añadir Nueva Traducción
             </a>
           </div>
@@ -106,7 +110,7 @@
                 <div class="icon">
                   <i class="fas fa-user-graduate"></i>
                 </div>
-                <a href="/admin/auth/user/" class="small-box-footer">
+                <a href="{% url 'admin:auth_user_changelist' %}" class="small-box-footer">
                   Administrar <i class="fas fa-arrow-circle-right"></i>
                 </a>
               </div>
@@ -121,7 +125,7 @@
                 <div class="icon">
                   <i class="fas fa-trophy"></i>
                 </div>
-                <a href="/admin/translations/achievement/" class="small-box-footer">
+                <a href="{% url 'admin:translations_achievement_changelist' %}" class="small-box-footer">
                   Administrar <i class="fas fa-arrow-circle-right"></i>
                 </a>
               </div>
@@ -129,7 +133,7 @@
           </div>
           
           <div class="text-center mt-3">
-            <a href="/admin/translations/userprofile/" class="btn btn-info">
+            <a href="{% url 'admin:translations_userprofile_changelist' %}" class="btn btn-info">
               <i class="fas fa-chart-bar"></i> Ver Estadísticas de Usuarios
             </a>
           </div>
@@ -141,47 +145,9 @@
   <!-- Separación clara entre secciones -->
   <div class="section-divider my-4"></div>
 
-  <!-- Dos secciones inferiores con separación clara -->
+  <!-- Sección de Actividad Reciente -->
   <div class="row">
-    <!-- Acciones Rápidas -->
-    <div class="col-lg-6 col-12">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h3 class="card-title"><i class="fas fa-bolt"></i> Acciones Rápidas</h3>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6 col-sm-6 col-12 mb-3">
-              <a href="/admin/translations/objecttranslation/add/" class="action-card btn btn-lg btn-outline-danger btn-block">
-                <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
-                Añadir Traducción
-              </a>
-            </div>
-            <div class="col-md-6 col-sm-6 col-12 mb-3">
-              <a href="/admin/translations/pronunciationrecord/" class="action-card btn btn-lg btn-outline-warning btn-block">
-                <i class="fas fa-microphone fa-2x mb-2"></i><br>
-                Revisar Pronunciaciones
-              </a>
-            </div>
-            <div class="col-md-6 col-sm-6 col-12 mb-3">
-              <a href="/admin/translations/userachievement/add/" class="action-card btn btn-lg btn-outline-success btn-block">
-                <i class="fas fa-medal fa-2x mb-2"></i><br>
-                Asignar Logro
-              </a>
-            </div>
-            <div class="col-md-6 col-sm-6 col-12 mb-3">
-              <a href="/admin/translations/exercise/add/" class="action-card btn btn-lg btn-outline-info btn-block">
-                <i class="fas fa-plus-square fa-2x mb-2"></i><br>
-                Crear Ejercicio
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sección de Actividad Reciente -->
-    <div class="col-lg-6 col-12">
+    <div class="col-12">
       <div class="card">
         <div class="card-header bg-light">
           <h3 class="card-title"><i class="fas fa-history"></i> Actividad Reciente</h3>
@@ -193,12 +159,27 @@
                 <span class="bg-danger">{{ log.timestamp|date:"d M Y" }}</span>
               </div>
               <div>
-                <i class="fas fa-user bg-primary"></i>
+                <i class="fas {% if log.activity_type == 'login' %}fa-sign-in-alt{% elif log.activity_type == 'exercise_completed' %}fa-check-circle{% elif log.activity_type == 'achievement_unlocked' %}fa-trophy{% elif log.activity_type == 'object_detected' %}fa-camera{% elif log.activity_type == 'pronunciation_recorded' %}fa-microphone{% else %}fa-dot-circle{% endif %} bg-primary"></i>
                 <div class="timeline-item">
                   <span class="time"><i class="far fa-clock"></i> {{ log.timestamp|time:"H:i" }}</span>
-                  <h3 class="timeline-header">{{ log.user.username }}</h3>
+                  <h3 class="timeline-header">{{ log.user.username|default:"Usuario" }}</h3>
                   <div class="timeline-body">
-                    {{ log.activity_type }}
+                    {% if log.activity_type == 'login' %}
+                      <i class="fas fa-sign-in-alt"></i> Inició sesión
+                    {% elif log.activity_type == 'exercise_completed' %}
+                      <i class="fas fa-check-circle"></i> Completó un ejercicio
+                    {% elif log.activity_type == 'achievement_unlocked' %}
+                      <i class="fas fa-trophy"></i> Desbloqueó un logro
+                    {% elif log.activity_type == 'object_detected' %}
+                      <i class="fas fa-camera"></i> Detectó un objeto
+                    {% elif log.activity_type == 'pronunciation_recorded' %}
+                      <i class="fas fa-microphone"></i> Grabó una pronunciación
+                    {% else %}
+                      {{ log.activity_type }}
+                    {% endif %}
+                    {% if log.points %}
+                      <span class="badge badge-success">+{{ log.points }} pts</span>
+                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -211,7 +192,10 @@
                 <div class="timeline-item">
                   <div class="timeline-header">Sin actividad reciente</div>
                   <div class="timeline-body">
-                    No hay registros de actividad recientes para mostrar.
+                    Los usuarios aún no han realizado actividades en la plataforma.
+                    <div class="mt-2">
+                      <small class="text-muted">Las actividades aparecerán aquí cuando los usuarios usen la aplicación.</small>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -219,7 +203,7 @@
           </div>
         </div>
         <div class="card-footer text-center">
-          <a href="/admin/translations/activitylog/" class="btn btn-sm btn-secondary">
+          <a href="{% url 'admin:translations_activitylog_changelist' %}" class="btn btn-sm btn-secondary">
             Ver todo el historial de actividad
           </a>
         </div>

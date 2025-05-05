@@ -5,10 +5,13 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'rea
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TutorialOverlay } from '../components/TutorialOverlay';
+import { Ionicons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
+  Practice: undefined;
+  Progress: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -83,6 +86,36 @@ export default function HomeScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('Camera')}
           >
             <Text style={styles.buttonText}>EMPIEZA AHORA</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Sección de acceso rápido a funcionalidades */}
+      <View style={styles.quickAccessSection}>
+        <Text style={styles.quickAccessTitle}>ACCESO RÁPIDO</Text>
+        <View style={styles.quickAccessGrid}>
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('Camera')}
+          >
+            <Ionicons name="camera" size={32} color="#FF0000" />
+            <Text style={styles.quickAccessText}>Detectar y Aprender</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('Practice')}
+          >
+            <Ionicons name="book" size={32} color="#2196F3" />
+            <Text style={styles.quickAccessText}>Practicar y Jugar</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('Progress')}
+          >
+            <Ionicons name="stats-chart" size={32} color="#4CAF50" />
+            <Text style={styles.quickAccessText}>Ver Progreso</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -279,6 +312,38 @@ const styles = StyleSheet.create({
   heroText: {
     fontSize: 20,
     marginBottom: 15,
+  },
+  quickAccessSection: {
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  quickAccessTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  quickAccessGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+  },
+  quickAccessButton: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '30%',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  quickAccessText: {
+    marginTop: 8,
+    fontSize: 12,
+    textAlign: 'center',
   },
   gamificationSection: {
     flexDirection: 'row',

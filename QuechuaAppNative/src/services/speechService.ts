@@ -406,7 +406,6 @@ export class SpeechService {
    }
  }
 
- // FUNCIÓN NUEVA: Analizar audio a través del backend
  static async analyzeRecordedAudioViaBackend(
   audioUri: string,
   targetWord: string,
@@ -431,8 +430,12 @@ export class SpeechService {
 
     console.log(`Tamaño del audio en base64: ${audioBase64.length} bytes`);
 
+    // Usar AbortController para implementar timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos para procesar audio
+
     // Enviar al backend
-   // Asegúrate que esta URL sea correcta
+    console.log(`Enviando audio al backend: ${API_URL}/speech/analyze/`);
     const response = await fetch(`${API_URL}/speech/analyze/`, {
       method: 'POST',
       headers: {
@@ -443,13 +446,17 @@ export class SpeechService {
         target_word: targetWord,
         language_code: languageCode
       }),
+      signal: controller.signal
     });
 
+    // Limpiar el timeout
+    clearTimeout(timeoutId);
+
     // Verificar respuesta
+    console.log(`Respuesta del servidor: ${response.status} ${response.statusText}`);
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error API (${response.status}): ${errorText}`);
-      throw new Error(`Error en API: ${response.status}`);
+      console.error(`Error en respuesta: ${response.status} ${response.statusText}`);
+      return { success: false, transcription: `Error en servidor: ${response.status}`, similarity: 0 };
     }
 
     const result = await response.json();
@@ -462,6 +469,16 @@ export class SpeechService {
     };
   } catch (error) {
     console.error('Error procesando audio vía backend:', error);
+    
+    // Manejo específico para error de timeout
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        success: false,
+        transcription: 'Tiempo de espera agotado en el análisis',
+        similarity: 0
+      };
+    }
+    
     return {
       success: false,
       transcription: 'Error al procesar audio',

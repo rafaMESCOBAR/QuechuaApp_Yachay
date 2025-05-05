@@ -1,5 +1,5 @@
-// src/components/MatchingExercise.tsx
-import React, { useState, useEffect } from 'react';
+// src/components/MatchingExercise.tsx - CORREGIDO
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -40,39 +40,18 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
   const [points, setPoints] = useState(15 * difficulty);
   const [attempts, setAttempts] = useState(0);
   
-  // Crear versión realmente mezclada de las palabras quechua
-  const [quechuaElements, setQuechuaElements] = useState<React.ReactNode[]>([]);
+  // CORRECCIÓN 1: Usar useMemo para crear pares válidos solo una vez
+  const validPairs = useMemo(() => {
+    return pairs.map((pair, index) => ({
+      ...pair,
+      id: pair.id || index + 1
+    }));
+  }, [pairs]);
   
-  // Inicializar y mezclar las filas de quechua
-  useEffect(() => {
-    // Crear elementos de quechua
-    const elements = pairs.map(word => (
-      <View key={`quechua-${word.id}`} style={styles.quechuaContainer}>
-        <TouchableOpacity
-          style={[
-            styles.wordButton,
-            styles.quechuaWord,
-            selectedQuechua?.id === word.id && styles.selectedWord
-          ]}
-          onPress={() => handleSelectQuechua(word)}
-          disabled={isCorrect !== null}
-        >
-          <Text style={styles.wordText}>{word.quechua}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.audioButton}
-          onPress={() => SpeechService.speakWord(word.quechua)}
-        >
-          <Ionicons name="volume-high" size={16} color="#2196F3" />
-        </TouchableOpacity>
-      </View>
-    ));
-    
-    // Mezclar los elementos (no solo los datos)
-    const shuffledElements = [...elements].sort(() => Math.random() - 0.5);
-    setQuechuaElements(shuffledElements);
-  }, [pairs, selectedQuechua, isCorrect]);
+  // CORRECCIÓN 2: Crear la lista mezclada una sola vez cuando el componente se monta
+  const shuffledQuechuaWords = useMemo(() => {
+    return [...validPairs].sort(() => Math.random() - 0.5);
+  }, [validPairs]);
   
   // Resetear selecciones y resultados
   const resetSelections = () => {
@@ -83,16 +62,11 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
   
   // Manejar selección de palabra en español
   const handleSelectSpanish = (word: MatchingPair) => {
-    // Si ya hay un resultado, no permitir nuevas selecciones
     if (isCorrect !== null) return;
     
-    // Marcar como seleccionada
     setSelectedSpanish(word);
-    
-    // Reproducir audio
     SpeechService.speakWord(word.spanish);
     
-    // Si ya hay una palabra quechua seleccionada, verificar el par
     if (selectedQuechua) {
       verifyMatch(word, selectedQuechua);
     }
@@ -100,16 +74,11 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
   
   // Manejar selección de palabra en quechua
   const handleSelectQuechua = (word: MatchingPair) => {
-    // Si ya hay un resultado, no permitir nuevas selecciones
     if (isCorrect !== null) return;
     
-    // Marcar como seleccionada
     setSelectedQuechua(word);
-    
-    // Reproducir audio
     SpeechService.speakWord(word.quechua);
     
-    // Si ya hay una palabra en español seleccionada, verificar el par
     if (selectedSpanish) {
       verifyMatch(selectedSpanish, word);
     }
@@ -117,19 +86,15 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
   
   // Verificar si el par seleccionado es correcto
   const verifyMatch = (spanishWord: MatchingPair, quechuaWord: MatchingPair) => {
-    // Incrementar intentos
     setAttempts(prev => prev + 1);
     
-    // Verificar si el ID coincide (mismo par)
     const matchResult = spanishWord.id === quechuaWord.id;
     setIsCorrect(matchResult);
     
-    // Actualizar puntos
     if (!matchResult && points > 5) {
       setPoints(prev => Math.max(5, prev - 5));
     }
     
-    // Mostrar feedback después de un tiempo y continuar
     setTimeout(() => {
       if (matchResult) {
         onComplete(true, points);
@@ -157,7 +122,7 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
         <View style={styles.column}>
           <Text style={styles.columnTitle}>Español</Text>
           <View style={styles.wordsColumn}>
-            {pairs.map(word => (
+            {validPairs.map(word => (
               <TouchableOpacity
                 key={`spanish-${word.id}`}
                 style={[
@@ -178,7 +143,28 @@ export const MatchingExercise: React.FC<MatchingExerciseProps> = ({
         <View style={styles.column}>
           <Text style={styles.columnTitle}>Quechua</Text>
           <View style={styles.wordsColumn}>
-            {quechuaElements}
+            {shuffledQuechuaWords.map(word => (
+              <View key={`quechua-${word.id}`} style={styles.quechuaContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.wordButton,
+                    styles.quechuaWord,
+                    selectedQuechua?.id === word.id && styles.selectedWord
+                  ]}
+                  onPress={() => handleSelectQuechua(word)}
+                  disabled={isCorrect !== null}
+                >
+                  <Text style={styles.wordText}>{word.quechua}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.audioButton}
+                  onPress={() => SpeechService.speakWord(word.quechua)}
+                >
+                  <Ionicons name="volume-high" size={16} color="#2196F3" />
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
         </View>
       </View>
@@ -347,6 +333,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   bottomSpace: {
-    height: 80, // Espacio extra para evitar que los botones del modal oculten contenido
+    height: 80,
   },
 });

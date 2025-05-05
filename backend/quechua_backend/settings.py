@@ -156,6 +156,14 @@ REST_FRAMEWORK = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Configuración mejorada de Jazzmin con descripciones detalladas
+# settings.py - Configuración optimizada de Jazzmin
+# settings.py - Configuración simplificada de Jazzmin para evitar interferencias
+# REEMPLAZA SOLO LA SECCIÓN JAZZMIN_SETTINGS
+
+# Configuración completa de Jazzmin para estructura jerárquica
+
+# Configuración completa de Jazzmin
+
 JAZZMIN_SETTINGS = {
     # Configuración básica
     "site_title": "Yachay Admin",
@@ -165,23 +173,15 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Bienvenido al Panel de Control de Yachay",
     "copyright": "Yachay - Aprendizaje de Quechua © 2025",
     
-    # Búsqueda y UI
-    "search_model": "translations.objecttranslation",
-    "show_ui_builder": True,
+    # Configuración crítica para el menú
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
     
-    # Enlaces personalizados
-    "usermenu_links": [
-        {"name": "Guía de Administración", "url": "#", "new_window": True, "icon": "fas fa-book"},
-    ],
+    # Desactivar constructor de UI para evitar cambios no deseados
+    "show_ui_builder": False,
     
-    # Estilo de formularios
-    "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {
-        "auth.user": "collapsible",
-        "auth.group": "vertical_tabs",
-    },
-    
-    # Iconos personalizados para cada modelo y sección
+    # Iconos para cada modelo
     "icons": {
         # Aplicaciones
         "auth": "fas fa-shield-alt",
@@ -191,186 +191,32 @@ JAZZMIN_SETTINGS = {
         "auth.user": "fas fa-user",
         "auth.group": "fas fa-users",
         
-        # Dashboard
-        "admin.logentry": "fas fa-file-alt",
-        "translations.objecttranslation": "fas fa-book",
-        "translations.userprofile": "fas fa-user-graduate",
+        "translations.objecttranslation": "fas fa-language",
         "translations.exercise": "fas fa-tasks",
-        "translations.userprogress": "fas fa-chart-line",
-        "translations.achievement": "fas fa-trophy",
-        "translations.userachievement": "fas fa-medal",
+        "translations.userprofile": "fas fa-id-card",
+        "translations.userprogress": "fas fa-chart-line", 
+        "translations.progresscategory": "fas fa-folder",
+        "translations.achievement": "fas fa-medal",
         "translations.activitylog": "fas fa-history",
         "translations.pronunciationrecord": "fas fa-microphone",
+        "translations.streakreward": "fas fa-fire",
+        "translations.practicesession": "fas fa-stopwatch"
     },
     
-    # Organización del menú
-    "order_with_respect_to": ["home", "auth", "translations"],
-    "navigation_expanded": True,
+    # Configuración de formato para formularios y vistas
+    "changeform_format": "horizontal_tabs",
+    "related_modal_active": True,
     
-    # Descripciones detalladas para cada modelo
-    "model_meta_descriptions": {
-        "auth.user": "Administra usuarios que pueden acceder al sistema. Aquí puedes crear nuevas cuentas, editar perfiles o desactivar usuarios existentes.",
-        "auth.group": "Gestiona grupos de permisos. Útil para asignar varios permisos a la vez a múltiples usuarios.",
-        
-        "translations.objecttranslation": "Gestiona el vocabulario de la aplicación. Aquí puedes añadir nuevas palabras con sus traducciones en español y quechua.",
-        "translations.userprofile": "Información detallada de cada usuario, incluyendo nivel actual, puntos de experiencia, y si es un hablante nativo.",
-        "translations.exercise": "Configura los ejercicios que aparecen en la aplicación. Puedes crear diferentes tipos como selección múltiple, completar espacios, etc.",
-        "translations.userprogress": "Seguimiento detallado del avance de los usuarios en cada ejercicio. Muestra intentos, aciertos y progreso general.",
-        "translations.achievement": "Configura logros que los usuarios pueden desbloquear. Establece requisitos como completar cierto número de ejercicios o mantener rachas de práctica.",
-        "translations.userachievement": "Registro de los logros desbloqueados por cada usuario y cuándo los obtuvieron.",
-        "translations.activitylog": "Historial completo de todas las acciones realizadas por los usuarios en la plataforma.",
-        "translations.pronunciationrecord": "Grabaciones de pronunciación enviadas por los usuarios para revisión. Puedes escucharlas y aprobarlas o rechazarlas.",
-    },
+    # Búsqueda personalizada
+    "search_model": "auth.user",
     
-    # Descripciones de secciones principales
-    "app_descriptions": {
-        "auth": "Control de acceso y seguridad: gestiona quién puede acceder al sistema y qué permisos tiene.",
-        "translations": "Centro de gestión de contenido y seguimiento de usuarios para la plataforma Yachay de aprendizaje de Quechua.",
-    },
-    
-    # Personalización de las etiquetas de aplicaciones y modelos
-    "custom_links": {
-        "translations": [{
-            "name": "Estadísticas Generales", 
-            "url": "admin:index", 
-            "icon": "fas fa-chart-bar"
-        }],
-    },
-    
-    # Menú personalizado para mejor organización
-    "menu": [
-        {
-            "name": "Dashboard",
-            "url": "admin:index",
-            "icon": "fas fa-tachometer-alt",
-            "description": "Panel principal con estadísticas y acciones rápidas",
-        },
-        {
-            "name": "Gestión de Cuentas",
-            "icon": "fas fa-users-cog",
-            "description": "Gestiona usuarios y permisos de acceso al sistema",
-            "models": [
-                {
-                    "name": "Usuarios",
-                    "url": "admin:auth_user_changelist",
-                    "icon": "fas fa-user",
-                    "description": "Administra las cuentas de usuario",
-                },
-                {
-                    "name": "Grupos",
-                    "url": "admin:auth_group_changelist",
-                    "icon": "fas fa-users",
-                    "description": "Gestiona grupos de permisos",
-                },
-                {
-                    "name": "Perfiles de usuario",
-                    "url": "admin:translations_userprofile_changelist",
-                    "icon": "fas fa-id-card",
-                    "description": "Información detallada de los perfiles",
-                },
-            ],
-        },
-        {
-            "name": "Contenido Lingüístico",
-            "icon": "fas fa-language",
-            "description": "Gestiona el vocabulario y ejercicios de aprendizaje",
-            "models": [
-                {
-                    "name": "Traducciones de Objetos",
-                    "url": "admin:translations_objecttranslation_changelist",
-                    "icon": "fas fa-book",
-                    "description": "Vocabulario en español y quechua",
-                },
-                {
-                    "name": "Ejercicios",
-                    "url": "admin:translations_exercise_changelist",
-                    "icon": "fas fa-tasks",
-                    "description": "Ejercicios de práctica para usuarios",
-                },
-                {
-                    "name": "Ceremonias",
-                    "url": "admin:translations_ceremony_changelist",  # Ajusta si el nombre del modelo es diferente
-                    "icon": "fas fa-crown",
-                    "description": "Actividades especiales y desafíos",
-                },
-            ],
-        },
-        {
-            "name": "Progreso de Aprendizaje",
-            "icon": "fas fa-graduation-cap",
-            "description": "Seguimiento del avance de los usuarios",
-            "models": [
-                {
-                    "name": "Progresos del usuario",
-                    "url": "admin:translations_userprogress_changelist",
-                    "icon": "fas fa-chart-line",
-                    "description": "Avance en ejercicios por usuario",
-                },
-                {
-                    "name": "Logros",
-                    "url": "admin:translations_achievement_changelist",
-                    "icon": "fas fa-trophy",
-                    "description": "Logros disponibles en la plataforma",
-                },
-                {
-                    "name": "Logros del usuario",
-                    "url": "admin:translations_userachievement_changelist",
-                    "icon": "fas fa-medal",
-                    "description": "Logros desbloqueados por usuario",
-                },
-                {
-                    "name": "Estadísticas de Aprendizaje",
-                    "url": "admin:index",  # Ajusta a la URL correcta si existe una vista específica
-                    "icon": "fas fa-chart-bar",
-                    "description": "Métricas y análisis de uso",
-                },
-            ],
-        },
-        {
-            "name": "Actividad y Monitoreo",
-            "icon": "fas fa-clipboard-list",
-            "description": "Seguimiento de la actividad en la plataforma",
-            "models": [
-                {
-                    "name": "Registros de actividad",
-                    "url": "admin:translations_activitylog_changelist",
-                    "icon": "fas fa-history",
-                    "description": "Historial de acciones de usuarios",
-                },
-                {
-                    "name": "Registros de pronunciación",
-                    "url": "admin:translations_pronunciationrecord_changelist",
-                    "icon": "fas fa-microphone",
-                    "description": "Grabaciones pendientes de revisión",
-                },
-            ],
-        },
-        {
-            "name": "Acciones Rápidas",
-            "icon": "fas fa-bolt",
-            "description": "Acciones frecuentes para administradores",
-            "models": [
-                {
-                    "name": "Añadir Traducción",
-                    "url": "admin:translations_objecttranslation_add",
-                    "icon": "fas fa-plus-circle",
-                },
-                {
-                    "name": "Revisar Pronunciaciones",
-                    "url": "admin:translations_pronunciationrecord_changelist",
-                    "icon": "fas fa-headphones",
-                },
-                {
-                    "name": "Asignar Logro",
-                    "url": "admin:translations_userachievement_add",
-                    "icon": "fas fa-award",
-                },
-            ],
-        },
-    ],
+    # No usamos un menú estático personalizado porque lo haremos con JavaScript
+    # para mayor flexibilidad y control
+    "custom_css": "css/admin_custom.css",
+    "custom_js": "js/custom_menu.js"
 }
 
-# Configuración del tema visual
+# Mantener la configuración visual de Jazzmin
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
     "footer_small_text": False,
@@ -391,7 +237,6 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "unido",
     "dark_mode_theme": None,
     "button_classes": {
         "primary": "btn-outline-primary",
@@ -401,9 +246,6 @@ JAZZMIN_UI_TWEAKS = {
         "danger": "btn-outline-danger",
         "success": "btn-outline-success"
     },
-    # Configuraciones adicionales
     "actions_sticky_top": False,
-    "use_google_fonts_cdn": True,
-    "custom_css": "css/admin_custom.css",  # Referencia al CSS personalizado
-    "custom_js": None
+    "use_google_fonts_cdn": True
 }
