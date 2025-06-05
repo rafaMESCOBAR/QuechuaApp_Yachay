@@ -1,4 +1,4 @@
-// custom_menu.js - Script corregido sin redundancias
+// translations/static/js/custom_menu.js
 document.addEventListener('DOMContentLoaded', function() {
     // Limpiar menú actual
     const sidebar = document.querySelector('.sidebar');
@@ -15,16 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (brandContainer) sidebar.appendChild(brandContainer);
     if (userPanel) sidebar.appendChild(userPanel);
     
-    // Crear menú personalizado CORREGIDO SIN REDUNDANCIAS
+    // Crear menú personalizado
     const menuStructure = [
         {
-            title: null,  // Sin título para el dashboard
+            title: null,
             icon: "fas fa-tachometer-alt",
             text: "Panel",
             url: "/admin/"
         },
         {
-            title: "CONTENIDO",  // Título en mayúsculas para la sección
+            title: "CONTENIDO",
             icon: "fas fa-book",
             items: [
                 { icon: "fas fa-language", text: "Traducciones", url: "/admin/translations/objecttranslation/" },
@@ -45,16 +45,15 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: "fas fa-chart-line",
             items: [
                 { icon: "fas fa-chart-line", text: "Progresos", url: "/admin/translations/userprogress/" },
-                { icon: "fas fa-folder", text: "Categorías", url: "/admin/translations/progresscategory/" },
-                { icon: "fas fa-stopwatch", text: "Sesiones", url: "/admin/translations/practicesession/" }
+                { icon: "fas fa-book-open", text: "Vocabulario", url: "/admin/translations/uservocabulary/" },
+                { icon: "fas fa-calendar-check", text: "Metas Diarias", url: "/admin/translations/dailygoal/" }
             ]
         },
         {
             title: "GAMIFICACIÓN",
             icon: "fas fa-trophy",
             items: [
-                { icon: "fas fa-medal", text: "Logros", url: "/admin/translations/achievement/" },
-                { icon: "fas fa-fire", text: "Recompensas", url: "/admin/translations/streakreward/" }
+                { icon: "fas fa-medal", text: "Logros", url: "/admin/translations/achievement/" }
             ]
         },
         {
@@ -99,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
             titleDiv.style.color = 'rgba(255,255,255,0.5)';
             navUl.appendChild(titleDiv);
             
-            // Luego agregar los items de la sección (sin redundancia)
+            // Luego agregar los items de la sección
             section.items.forEach(item => {
                 const subLi = document.createElement('li');
                 subLi.className = 'nav-item';
@@ -120,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 navUl.appendChild(subLi);
             });
         } else {
-            // Si no tiene items, es un elemento individual (como el dashboard)
+            // Si no tiene items, es un elemento individual
             const li = document.createElement('li');
             li.className = 'nav-item';
             

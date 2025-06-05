@@ -8,7 +8,7 @@ import json
 from .models import (
     ObjectTranslation, UserProfile, Exercise, UserProgress,
     Achievement, UserAchievement, ActivityLog, PronunciationRecord,
-    ProgressCategory, StreakReward, PracticeSession, AnalyticsEvent
+    UserVocabulary, DailyGoal
 )
 
 # Clase base para optimizaciones comunes
@@ -55,35 +55,42 @@ class ObjectTranslationAdmin(BaseModelAdmin):
         extra_context['subtitle'] = "Gestiona el vocabulario en español y quechua"
         return super().changelist_view(request, extra_context=extra_context)
 
-# Admin para UserProfile 
+# Admin para UserProfile - ACTUALIZADO
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('username', 'level', 'experience_points', 'streak_days', 'native_speaker', 'last_activity')
-    list_filter = ('level', 'native_speaker', 'last_activity')
+    list_display = ('username', 'current_level', 'level_title', 'total_words', 'mastered_words', 'streak_days', 'last_activity')
+    list_filter = ('current_level', 'native_speaker', 'last_activity')
     search_fields = ('user__username', 'user__email')
-    ordering = ('-level', '-experience_points')
+    ordering = ('-total_words', '-mastered_words')
     
     fieldsets = (
         ('Información de Usuario', {
             'fields': ('user', 'profile_image_preview')
         }),
-        ('Nivel y Experiencia', {
-            'fields': ('level', 'experience_points', 'streak_days', 'last_activity')
+        ('Progreso de Aprendizaje', {
+            'fields': ('current_level', 'level_title_display', 'total_words', 'mastered_words')
+        }),
+        ('Actividad', {
+            'fields': ('streak_days', 'last_activity', 'study_time')
         }),
         ('Información de Idioma', {
             'fields': ('native_speaker', 'preferred_dialect')
         }),
-        ('Estadísticas Avanzadas', {
-            'fields': ('total_points', 'detection_points', 'practice_points', 'max_streak', 'total_practice_time'),
-            'classes': ('collapse',)
-        }),
     )
     
-    readonly_fields = ('profile_image_preview',)
+    readonly_fields = ('profile_image_preview', 'level_title_display',)
     
     def username(self, obj):
         return obj.user.username
     username.short_description = 'Usuario'
+    
+    def level_title(self, obj):
+        return obj.get_level_title()
+    level_title.short_description = 'Título'
+    
+    def level_title_display(self, obj):
+        return obj.get_level_title()
+    level_title_display.short_description = 'Título del nivel'
     
     def profile_image_preview(self, obj):
         if obj.profile_image:
@@ -103,10 +110,11 @@ class UserProfileAdmin(admin.ModelAdmin):
         """Inicializa perfiles con datos básicos para probar"""
         updated = 0
         for profile in queryset:
-            profile.level = 1
-            profile.experience_points = 20
+            profile.current_level = 1
+            profile.total_words = 5
+            profile.mastered_words = 0
             profile.streak_days = 1
-            profile.last_activity = timezone.now().date()
+            profile.last_activity = timezone.now()
             profile.save()
             updated += 1
         
@@ -126,20 +134,20 @@ class UserProfileAdmin(admin.ModelAdmin):
         if extra_context is None:
             extra_context = {}
         extra_context['title'] = "Perfiles de Usuario"
-        extra_context['subtitle'] = "Gestiona los perfiles de usuario con su nivel, experiencia y rachas"
+        extra_context['subtitle'] = "Gestiona los perfiles y progreso de los usuarios"
         return super().changelist_view(request, extra_context=extra_context)
 
-# Admin para Exercise - Renombrado a Ejercicios
+# Admin para Exercise
 @admin.register(Exercise)
 class ExerciseAdmin(BaseModelAdmin):
-    list_display = ('id', 'type', 'object_name', 'difficulty', 'points', 'created_at')
+    list_display = ('id', 'type', 'object_name', 'difficulty', 'category', 'created_at')
     list_filter = ('type', 'difficulty', 'created_at', 'category')
     search_fields = ('question', 'object_translation__spanish', 'object_translation__quechua')
     ordering = ('-created_at',)
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('type', 'category', 'object_translation', 'difficulty', 'points')
+            'fields': ('type', 'category', 'object_translation', 'difficulty')
         }),
         ('Contenido del Ejercicio', {
             'fields': ('question', 'answer', 'distractors_formatted')
@@ -202,8 +210,8 @@ class UserProgressAdmin(BaseModelAdmin):
 # Admin para Achievement
 @admin.register(Achievement)
 class AchievementAdmin(BaseModelAdmin):
-    list_display = ('name', 'achievement_type', 'required_value', 'earned_count')
-    list_filter = ('achievement_type',)
+    list_display = ('name', 'type', 'requirement_value', 'earned_count')
+    list_filter = ('type',)
     search_fields = ('name', 'description')
     
     def get_queryset(self, request):
@@ -223,12 +231,12 @@ class AchievementAdmin(BaseModelAdmin):
         extra_context['subtitle'] = "Configura los logros que pueden desbloquear los usuarios"
         return super().changelist_view(request, extra_context=extra_context)
 
-# Admin para ActivityLog
+# Admin para ActivityLog - ACTUALIZADO
 @admin.register(ActivityLog)
 class ActivityLogAdmin(BaseModelAdmin):
-    list_display = ('user', 'activity_type', 'mode', 'category', 'points', 'formatted_timestamp')
+    list_display = ('user', 'activity_type', 'mode', 'category', 'word_learned', 'formatted_timestamp')
     list_filter = ('activity_type', 'mode', 'category', 'timestamp')
-    search_fields = ('user__username', 'activity_type')
+    search_fields = ('user__username', 'activity_type', 'word_learned')
     ordering = ('-timestamp',)
     
     def get_queryset(self, request):
@@ -352,27 +360,20 @@ class PronunciationRecordAdmin(BaseModelAdmin):
         extra_context['subtitle'] = "Grabaciones de pronunciación enviadas por los usuarios"
         return super().changelist_view(request, extra_context=extra_context)
 
-# Admin para ProgressCategory
-@admin.register(ProgressCategory)
-class ProgressCategoryAdmin(BaseModelAdmin):
-    list_display = ('user', 'category', 'points', 'exercises_completed', 'formatted_accuracy', 'updated_at')
-    list_filter = ('category', 'updated_at')
-    search_fields = ('user__username', 'category')
-    ordering = ('user', 'category')
+# Admin para UserVocabulary - NUEVO
+@admin.register(UserVocabulary)
+class UserVocabularyAdmin(BaseModelAdmin):
+    list_display = ('user', 'spanish_word', 'quechua_word', 'mastery_level', 'star_display', 'exercises_completed', 'last_practiced')
+    list_filter = ('mastery_level', 'last_practiced', 'first_detected')
+    search_fields = ('user__username', 'spanish_word', 'quechua_word', 'object_label')
+    ordering = ('user', '-mastery_level')
     
-    def formatted_accuracy(self, obj):
-        """Mostrar tasa de precisión como porcentaje formateado"""
-        if obj.accuracy_rate is None:
-            return "-"
-        
-        percentage = obj.accuracy_rate * 100
-        return format_html(
-            '<span class="badge badge-{}">{:.1f}%</span>',
-            'success' if percentage >= 75 else 'warning' if percentage >= 50 else 'danger',
-            percentage
-        )
-    formatted_accuracy.short_description = 'Tasa de precisión'
-    formatted_accuracy.admin_order_field = 'accuracy_rate'
+    def star_display(self, obj):
+        """Muestra las estrellas visualmente"""
+        stars = '⭐' * obj.mastery_level
+        empty_stars = '☆' * (5 - obj.mastery_level)
+        return format_html('<span style="font-size: 18px;">{}{}</span>', stars, empty_stars)
+    star_display.short_description = 'Dominio'
     
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -382,32 +383,33 @@ class ProgressCategoryAdmin(BaseModelAdmin):
     def changelist_view(self, request, extra_context=None):
         if extra_context is None:
             extra_context = {}
-        extra_context['title'] = "Progresos por Categoría"
-        extra_context['subtitle'] = "Avance del usuario por tipo de contenido"
+        extra_context['title'] = "Vocabulario de Usuarios"
+        extra_context['subtitle'] = "Palabras aprendidas por cada usuario"
         return super().changelist_view(request, extra_context=extra_context)
 
-# Admin para StreakReward
-@admin.register(StreakReward)
-class StreakRewardAdmin(BaseModelAdmin):
-    list_display = ('streak_days', 'reward_name', 'bonus_points', 'icon')
-    list_filter = ('streak_days',)
-    search_fields = ('reward_name', 'reward_description')
-    ordering = ('streak_days',)
-    
-    def changelist_view(self, request, extra_context=None):
-        if extra_context is None:
-            extra_context = {}
-        extra_context['title'] = "Recompensas por Racha"
-        extra_context['subtitle'] = "Bonificaciones por días consecutivos de estudio"
-        return super().changelist_view(request, extra_context=extra_context)
-
-# Admin para PracticeSession
-@admin.register(PracticeSession)
-class PracticeSessionAdmin(BaseModelAdmin):
-    list_display = ('user', 'category', 'start_time', 'end_time', 'duration_minutes', 'exercises_completed', 'points_earned')
-    list_filter = ('category', 'start_time')
+# Admin para DailyGoal - NUEVO
+@admin.register(DailyGoal)
+class DailyGoalAdmin(BaseModelAdmin):
+    list_display = ('user', 'date', 'words_detected', 'words_practiced', 'words_mastered', 'goal_status')
+    list_filter = ('date', 'words_detected', 'words_practiced')
     search_fields = ('user__username',)
-    ordering = ('-start_time',)
+    ordering = ('-date', 'user')
+    
+    def goal_status(self, obj):
+        """Muestra el estado de la meta diaria"""
+        if obj.is_complete():
+            return format_html('<span style="color: green;">✓ Completada</span>')
+        else:
+            # Calcular progreso de manera segura
+            total_activity = (obj.words_practiced or 0) + (obj.words_detected or 0)
+            progress = min(total_activity / 5 * 100, 100)
+            progress_int = int(round(progress))
+            
+            return format_html(
+                '<span style="color: #007bff;">{}% completado</span>',
+                progress_int
+            )
+    goal_status.short_description = 'Estado' 
     
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -417,19 +419,17 @@ class PracticeSessionAdmin(BaseModelAdmin):
     def changelist_view(self, request, extra_context=None):
         if extra_context is None:
             extra_context = {}
-        extra_context['title'] = "Sesiones de Práctica"
-        extra_context['subtitle'] = "Sesiones de estudio registradas por los usuarios"
+        extra_context['title'] = "Metas Diarias"
+        extra_context['subtitle'] = "Progreso diario de los usuarios"
         return super().changelist_view(request, extra_context=extra_context)
 
-# AÑADIR ESTE CÓDIGO AL FINAL DEL ARCHIVO
-# Desregistrar explícitamente modelos redundantes
+# Desregistrar modelos redundantes
 from django.apps import apps
 
 # Lista de modelos a ocultar completamente
 models_to_hide = [
     ('authtoken', 'token'),             # Tokens de autenticación
     ('translations', 'userachievement'), # Logros de usuario (redundante)
-    ('translations', 'analyticsevent'),  # Eventos analíticos (redundante)
 ]
 
 # Desregistrar modelos

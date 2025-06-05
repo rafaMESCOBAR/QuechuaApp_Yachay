@@ -7,6 +7,8 @@ class TranslationsConfig(AppConfig):
     verbose_name = "Yachay"
     
     def ready(self):
+        # Remover esta línea: from . import signals
+        
         # Personalizar nombres de modelos para el admin
         from django.db.models.signals import class_prepared
         
@@ -18,10 +20,9 @@ class TranslationsConfig(AppConfig):
                 'UserProgress': ('Progreso de Usuario', 'Progresos de Usuario'),
                 'Achievement': ('Logro', 'Logros'),
                 'ActivityLog': ('Registro de Actividad', 'Registros de Actividad'),
-                'PracticeSession': ('Sesión de Práctica', 'Sesiones de Práctica'),
                 'PronunciationRecord': ('Grabación', 'Grabaciones de Pronunciación'),
-                'StreakReward': ('Recompensa', 'Recompensas por Racha'),
-                'ProgressCategory': ('Categoría', 'Categorías de Progreso'),
+                'UserVocabulary': ('Vocabulario', 'Vocabulario de Usuarios'),
+                'DailyGoal': ('Meta Diaria', 'Metas Diarias'),
             }
             
             model_name = sender.__name__

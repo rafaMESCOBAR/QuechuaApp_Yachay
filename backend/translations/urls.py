@@ -12,6 +12,7 @@ router.register(r'exercise-progress', views.UserProgressViewSet)
 router.register(r'pronunciation', views.PronunciationViewSet)
 router.register(r'practice', views.PracticeViewSet, basename='practice')
 router.register(r'progress', views.ProgressViewSet, basename='progress')
+router.register(r'vocabulary', views.UserVocabularyViewSet, basename='vocabulary')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -21,4 +22,7 @@ urlpatterns = [
     path('auth/google-login/', views.google_login_view, name='google_login'),
     path('speech/analyze/', views.analyze_pronunciation, name='analyze_pronunciation'),
     path('dashboard/', views.user_dashboard, name='user_dashboard'),
+    path('practice/user_vocabulary/', views.PracticeViewSet.as_view({'get': 'user_vocabulary'}), name='user-vocabulary'),
+    path('achievements/check/', views.check_achievements, name='check-achievements'),
+    path('daily-goal/', views.daily_goal_view, name='daily-goal'),
 ]

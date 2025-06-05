@@ -30,7 +30,6 @@ from django.apps import apps
 models_to_hide = [
     ('authtoken', 'token'),
     ('translations', 'userachievement'),
-    ('translations', 'analyticsevent'),
 ]
 
 # Desregistrar modelos nuevamente (redundancia intencional)
