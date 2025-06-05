@@ -200,7 +200,9 @@ JAZZMIN_SETTINGS = {
         "translations.activitylog": "fas fa-history",
         "translations.pronunciationrecord": "fas fa-microphone",
         "translations.streakreward": "fas fa-fire",
-        "translations.practicesession": "fas fa-stopwatch"
+        "translations.practicesession": "fas fa-stopwatch",
+        "translations.uservocabulary": "fas fa-book-open",
+        "translations.dailygoal": "fas fa-calendar-check",
     },
     
     # Configuración de formato para formularios y vistas

@@ -1,7 +1,6 @@
 # translations/management/commands/init_data.py
 from django.core.management.base import BaseCommand
 from translations.initial_data import load_initial_data
-from translations.sample_data import generate_sample_data
 from translations.models import Achievement
 
 class Command(BaseCommand):
@@ -18,77 +17,85 @@ class Command(BaseCommand):
         self._load_achievements()
         self.stdout.write(self.style.SUCCESS('Logros predefinidos cargados correctamente.'))
         
-        # Generar datos de muestra
-        self.stdout.write(self.style.NOTICE('Generando datos de muestra...'))
-        generate_sample_data()
-        self.stdout.write(self.style.SUCCESS('Datos de muestra generados correctamente.'))
-        
         self.stdout.write(self.style.SUCCESS('¡Inicialización de datos completada!'))
     
     def _load_achievements(self):
+        """Carga logros iniciales basados en el nuevo sistema"""
         achievements = [
+            # Logros por vocabulario
             {
-                'name': 'Principiante',
-                'description': 'Completar 10 ejercicios',
-                'icon': 'star',
-                'required_value': 10,
-                'achievement_type': 'exercises_completed'
+                'name': 'Primer Paso',
+                'description': 'Descubre tu primera palabra en quechua',
+                'type': 'vocabulary',
+                'requirement_value': 1,
+                'icon': 'star'
             },
             {
-                'name': 'Estudiante Aplicado',
-                'description': 'Completar 50 ejercicios',
-                'icon': 'school',
-                'required_value': 50,
-                'achievement_type': 'exercises_completed'
+                'name': 'Explorador',
+                'description': 'Aprende 10 palabras diferentes',
+                'type': 'vocabulary',
+                'requirement_value': 10,
+                'icon': 'compass'
             },
             {
-                'name': 'Maestro del Quechua',
-                'description': 'Completar 100 ejercicios',
-                'icon': 'trophy',
-                'required_value': 100,
-                'achievement_type': 'exercises_completed'
+                'name': 'Coleccionista de Palabras',
+                'description': 'Alcanza 50 palabras en tu vocabulario',
+                'type': 'vocabulary',
+                'requirement_value': 50,
+                'icon': 'book'
             },
             {
-                'name': 'Racha Corta',
-                'description': 'Mantener una racha de 3 días',
-                'icon': 'flame',
-                'required_value': 3,
-                'achievement_type': 'streak_days'
+                'name': 'Diccionario Viviente',
+                'description': 'Domina 100 palabras en quechua',
+                'type': 'vocabulary',
+                'requirement_value': 100,
+                'icon': 'library'
+            },
+            
+            # Logros por dominio
+            {
+                'name': 'Primera Estrella',
+                'description': 'Domina tu primera palabra (5 estrellas)',
+                'type': 'mastery',
+                'requirement_value': 1,
+                'icon': 'star'
             },
             {
-                'name': 'Racha Constante',
-                'description': 'Mantener una racha de 7 días',
-                'icon': 'flame',
-                'required_value': 7,
-                'achievement_type': 'streak_days'
+                'name': 'Maestro Principiante',
+                'description': 'Domina 5 palabras completamente',
+                'type': 'mastery',
+                'requirement_value': 5,
+                'icon': 'award'
             },
             {
-                'name': 'Racha Dedicada',
-                'description': 'Mantener una racha de 30 días',
-                'icon': 'flame',
-                'required_value': 30,
-                'achievement_type': 'streak_days'
+                'name': 'Sabio del Quechua',
+                'description': 'Domina 25 palabras a la perfección',
+                'type': 'mastery',
+                'requirement_value': 25,
+                'icon': 'crown'
+            },
+            
+            # Logros por racha
+            {
+                'name': 'Inicio Constante',
+                'description': 'Mantén una racha de 3 días',
+                'type': 'streak',
+                'requirement_value': 3,
+                'icon': 'fire'
             },
             {
-                'name': 'Vocabulario Básico',
-                'description': 'Aprender 20 palabras diferentes',
-                'icon': 'book',
-                'required_value': 20,
-                'achievement_type': 'words_learned'
+                'name': 'Semana Perfecta',
+                'description': 'Estudia 7 días seguidos',
+                'type': 'streak',
+                'requirement_value': 7,
+                'icon': 'calendar'
             },
             {
-                'name': 'Vocabulario Intermedio',
-                'description': 'Aprender 50 palabras diferentes',
-                'icon': 'book',
-                'required_value': 50,
-                'achievement_type': 'words_learned'
-            },
-            {
-                'name': 'Pronunciación Clara',
-                'description': 'Completar 10 ejercicios de pronunciación',
-                'icon': 'mic',
-                'required_value': 10,
-                'achievement_type': 'pronunciation_exercises'
+                'name': 'Mes Dedicado',
+                'description': 'Increíble racha de 30 días',
+                'type': 'streak',
+                'requirement_value': 30,
+                'icon': 'trophy'
             }
         ]
         

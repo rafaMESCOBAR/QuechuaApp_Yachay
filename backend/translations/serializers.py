@@ -1,10 +1,12 @@
-# translations/serializers.py
+#translations\serializers.py
+
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.utils import timezone 
 from .models import (
     ObjectTranslation, UserProfile, Exercise, UserProgress,
     Achievement, UserAchievement, ActivityLog, PronunciationRecord,
-    ProgressCategory, StreakReward, PracticeSession, AnalyticsEvent
+    UserVocabulary, DailyGoal
 )
 
 # Serializer existente
@@ -21,22 +23,32 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'first_name', 'last_name')
         read_only_fields = ('id',)
 
-# Actualizar UserProfileSerializer para incluir nuevos campos
+# ACTUALIZADO - UserProfileSerializer para nuevo sistema
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    level_title = serializers.CharField(source='get_level_title', read_only=True)
     
     class Meta:
         model = UserProfile
-        fields = '__all__'
-        read_only_fields = ('created_at', 'updated_at', 'experience_points', 'level', 'streak_days', 'total_points', 'max_streak')
+        fields = [
+            'id', 'user', 'total_words', 'mastered_words', 
+            'current_level', 'level_title', 'streak_days',
+            'last_activity', 'native_speaker', 'preferred_dialect',
+            'profile_image', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ('created_at', 'updated_at', 'total_words', 'mastered_words', 'current_level')
 
-# Actualizar ExerciseSerializer para incluir categoría
+# ACTUALIZADO - ExerciseSerializer sin puntos
 class ExerciseSerializer(serializers.ModelSerializer):
     object_translation = ObjectTranslationSerializer(read_only=True)
     
     class Meta:
         model = Exercise
-        fields = '__all__'
+        fields = [
+            'id', 'type', 'category', 'object_translation',
+            'difficulty', 'question', 'answer', 'distractors',
+            'metadata', 'created_at'
+        ]
         read_only_fields = ('created_at',)
 
 class UserProgressSerializer(serializers.ModelSerializer):
@@ -47,10 +59,11 @@ class UserProgressSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('last_attempt',)
 
+# ACTUALIZADO - AchievementSerializer simplificado
 class AchievementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Achievement
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'type', 'requirement_value', 'icon']
 
 class UserAchievementSerializer(serializers.ModelSerializer):
     achievement = AchievementSerializer(read_only=True)
@@ -60,11 +73,14 @@ class UserAchievementSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('earned_at',)
 
-# Actualizar ActivityLogSerializer para incluir modo y categoría
+# ACTUALIZADO - ActivityLogSerializer sin puntos
 class ActivityLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityLog
-        fields = '__all__'
+        fields = [
+            'id', 'user', 'activity_type', 'mode', 'category',
+            'word_learned', 'details', 'timestamp'
+        ]
         read_only_fields = ('timestamp',)
 
 class PronunciationRecordSerializer(serializers.ModelSerializer):
@@ -75,26 +91,55 @@ class PronunciationRecordSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('created_at', 'approval_date')
 
-# Nuevos serializers
-class ProgressCategorySerializer(serializers.ModelSerializer):
+# ACTUALIZADO - UserVocabularySerializer con estrellas
+class UserVocabularySerializer(serializers.ModelSerializer):
+    days_since_practice = serializers.SerializerMethodField()
+    
     class Meta:
-        model = ProgressCategory
-        fields = '__all__'
-        read_only_fields = ('updated_at',)
+        model = UserVocabulary
+        fields = [
+            'id', 'object_label', 'spanish_word', 'quechua_word', 
+            'mastery_level', 'exercises_completed', 'exercises_correct',
+            'times_detected', 'first_detected', 'last_detected',
+            'last_practiced', 'mastered_date', 'days_since_practice'
+        ]
+        read_only_fields = ('first_detected', 'last_detected', 'mastered_date')
+    
+    def get_days_since_practice(self, obj):
+        if not obj.last_practiced:
+            return None
+        
+        now = timezone.now()
+        delta = now - obj.last_practiced
+        return delta.days
 
-class StreakRewardSerializer(serializers.ModelSerializer):
+# NUEVO - DailyGoalSerializer
+class DailyGoalSerializer(serializers.ModelSerializer):
+    is_complete = serializers.BooleanField(read_only=True)
+    
     class Meta:
-        model = StreakReward
-        fields = '__all__'
+        model = DailyGoal
+        fields = [
+            'id', 'date', 'words_detected', 'words_practiced', 'words_mastered',
+            'detection_goal', 'practice_goal', 'mastery_goal', 'is_complete'
+        ]
+        read_only_fields = ('date', 'is_complete')
 
-class PracticeSessionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PracticeSession
-        fields = '__all__'
-        read_only_fields = ('start_time', 'duration_minutes')
-
-# NUEVO SERIALIZER PARA ANALYTICS
-class AnalyticsEventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AnalyticsEvent
-        fields = ['category', 'event_type', 'duration', 'score', 'timestamp']
+# ACTUALIZADO - UserProgressSummarySerializer
+class UserProgressSummarySerializer(serializers.Serializer):
+    """Serializer para el resumen de progreso del usuario"""
+    current_level = serializers.IntegerField()
+    level_title = serializers.CharField()
+    total_words = serializers.IntegerField()
+    mastered_words = serializers.IntegerField()
+    streak_days = serializers.IntegerField()
+    words_to_next_level = serializers.IntegerField()
+    level_progress = serializers.FloatField()
+    
+    # Datos adicionales
+    recent_words = UserVocabularySerializer(many=True, read_only=True)
+    achievements = UserAchievementSerializer(many=True, read_only=True)
+    daily_goal = DailyGoalSerializer(read_only=True)
+    
+    # Estadísticas por categoría (simplificado)
+    stats_by_category = serializers.DictField(read_only=True)
