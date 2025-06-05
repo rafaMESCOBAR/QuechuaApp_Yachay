@@ -3,13 +3,13 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const defaultConfig = getDefaultConfig(__dirname);
 
-// Asegurarnos de que blacklist/blocklist está definido correctamente
+// Asegurarnos que la configuración es compatible
 module.exports = {
   ...defaultConfig,
   resolver: {
     ...defaultConfig.resolver,
-    // Corregir la forma de bloquear módulos
-    blacklistRE: [
+    // En lugar de blacklistRE (obsoleto), usar blockList
+    blockList: [
       /node_modules\/.*\/node_modules\/react-native\/.*/,
       /react-native-firebase\/.*\/bridgeless/,
     ]

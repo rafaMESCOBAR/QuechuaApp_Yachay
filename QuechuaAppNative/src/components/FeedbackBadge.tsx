@@ -1,4 +1,4 @@
-// src/components/FeedbackEffect.tsx
+//src\components\FeedbackBadge.tsx
 
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, Animated, View, Easing } from 'react-native';
@@ -7,14 +7,14 @@ import { Audio } from 'expo-av';
 
 interface FeedbackEffectProps {
   isCorrect: boolean;
-  points: number;
+  mastery?: number;
   message?: string;
   onAnimationComplete?: () => void;
 }
 
 export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({ 
   isCorrect, 
-  points, 
+  mastery,
   message,
   onAnimationComplete 
 }) => {
@@ -22,10 +22,8 @@ export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({
   const opacity = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
-    // Reproducir sonido según resultado
     playSound(isCorrect);
     
-    // Animar aparición
     Animated.sequence([
       Animated.parallel([
         Animated.spring(scale, {
@@ -63,7 +61,6 @@ export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({
   
   const playSound = async (isCorrect: boolean) => {
     try {
-      // Cargar sonido según resultado
       const soundFile = isCorrect 
         ? require('../../assets/sounds/success.mp3') 
         : require('../../assets/sounds/error.mp3');
@@ -71,9 +68,7 @@ export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({
       const { sound } = await Audio.Sound.createAsync(soundFile);
       await sound.playAsync();
       
-      // Descargar cuando termine
       sound.setOnPlaybackStatusUpdate(status => {
-        // Verificar que no es un error y tiene la propiedad didJustFinish
         if (status.isLoaded && status.didJustFinish) {
           sound.unloadAsync();
         }
@@ -83,9 +78,8 @@ export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({
     }
   };
   
-  // Determinar mensaje a mostrar
   const feedbackMessage = message || (isCorrect 
-    ? `¡Correcto! +${points} puntos` 
+    ? '¡Correcto!' 
     : "¡Incorrecto! Intenta otra vez");
   
   return (
@@ -106,10 +100,10 @@ export const FeedbackEffect: React.FC<FeedbackEffectProps> = ({
         {feedbackMessage}
       </Text>
       
-      {isCorrect && points > 0 && (
-        <Animated.View style={styles.pointsContainer}>
-          <Text style={styles.pointsText}>+{points}</Text>
-        </Animated.View>
+      {isCorrect && mastery && (
+        <View style={styles.masteryContainer}>
+          <Text style={styles.masteryText}>Dominio: {mastery}/5 ⭐</Text>
+        </View>
       )}
     </Animated.View>
   );
@@ -149,15 +143,15 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     textAlign: 'center',
   },
-  pointsContainer: {
+  masteryContainer: {
     marginTop: 10,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#FFF8E1',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
   },
-  pointsText: {
-    fontSize: 18,
+  masteryText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   }

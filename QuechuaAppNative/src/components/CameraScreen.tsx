@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ApiService } from '../services/api';
 import { DetectionResponse } from '../types/api';
 import { DetectionResultModal } from './DetectionResultModal';
+import { Audio } from 'expo-av';
 
 export function CameraScreen() {
   const [isFrontCamera, setIsFrontCamera] = useState(false);
@@ -19,6 +20,7 @@ export function CameraScreen() {
   const [detectionResults, setDetectionResults] = useState<DetectionResponse | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [lastPhotoPath, setLastPhotoPath] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice(isFrontCamera ? 'front' : 'back');
@@ -36,6 +38,25 @@ export function CameraScreen() {
     try {
       const results = await ApiService.detectObjects(path);
       setDetectionResults(results);
+      
+      // Reproducir sonido de detección exitosa si hay objetos detectados
+      if (soundEnabled && results && results.objects && results.objects.length > 0) {
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            require('../assets/sounds/object-detected.mp3')
+          );
+          await sound.playAsync();
+          // Limpiar después de reproducir
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if ('isLoaded' in status && status.isLoaded && !status.isPlaying) {
+              sound.unloadAsync().catch(e => console.error("Error descargando sonido", e));
+            }
+          });
+        } catch (soundError) {
+          console.error("Error reproduciendo sonido de detección:", soundError);
+        }
+      }
+      
       setShowResults(true);
     } catch (error) {
       Alert.alert('Error', 'No se pudo procesar la imagen');
@@ -72,6 +93,24 @@ export function CameraScreen() {
 
   const takePhoto = async () => {
     try {
+      // Reproducir sonido de obturador
+      if (soundEnabled) {
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            require('../assets/sounds/camera-shutter.mp3')
+          );
+          await sound.playAsync();
+          // Limpiar después de reproducir
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if ('isLoaded' in status && status.isLoaded && !status.isPlaying) {
+              sound.unloadAsync().catch(e => console.error("Error descargando sonido", e));
+            }
+          });
+        } catch (soundError) {
+          console.error("Error reproduciendo sonido de obturador:", soundError);
+        }
+      }
+  
       if (camera.current) {
         const photo = await camera.current.takePhoto({
           flash: flashMode
