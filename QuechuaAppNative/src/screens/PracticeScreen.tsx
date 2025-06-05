@@ -1,5 +1,5 @@
 // src/screens/PracticeScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image
+  Image,
+  BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiService } from '../services/api';
@@ -17,6 +18,8 @@ import { useAuth } from '../context/AuthContext';
 import { OfflineService } from '../services/offlineService';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import NetInfo from '@react-native-community/netinfo';
+import { useSessionTracking } from '../hooks/useSessionTracking';
+import { AbandonSessionAlert } from '../components/AbandonSessionAlert';
 
 interface PracticeCategory {
   id: string;
@@ -72,26 +75,57 @@ export default function PracticeScreen() {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [progress, setProgress] = useState<any>(null);
   const [lastSyncTime, setLastSyncTime] = useState(0);
+  
+  // Agregar referencias para controlar estados
+  const isSessionCompleted = useRef(false);
+  const isSessionAbandoned = useRef(false);
+  
+  // Usar el hook de seguimiento de sesiones
+  const { 
+    sessionId, 
+    isActive, 
+    isExiting, 
+    penaltyInfo, 
+    abandonmentModalVisible,
+    startSession, 
+    completeSession, 
+    abandonSession,
+    checkAbandonmentPenalties,
+    showAbandonmentAlert,
+    confirmAbandon,
+    cancelAbandon
+  } = useSessionTracking({ 
+    mode: 'practice',
+    onSessionComplete: () => {
+      console.log("Sesión completada exitosamente");
+      // AGREGAR un flag para evitar múltiples llamadas
+      if (!isSessionCompleted.current) {
+        isSessionCompleted.current = true;
+        handleExercisesComplete();
+      }
+    },
+    onSessionAbandon: (abandonedId) => {
+      console.log(`Sesión ${abandonedId} abandonada`);
+      // IMPORTANTE: No llamar a handleExercisesComplete aquí
+      // Solo actualizar estado local si es necesario
+      isSessionAbandoned.current = true;
+    }
+  });
 
-  // Comprobar estado de conexión y cargar progreso
   useEffect(() => {
     const initialize = async () => {
-      // Verificar conexión
       const netInfo = await NetInfo.fetch();
       setIsOffline(!netInfo.isConnected);
       
-      // Intentar cargar progreso
       if (isAuthenticated) {
         try {
           if (netInfo.isConnected) {
-            // Si está online, cargar del servidor
             const userProgress = await ApiService.getUserProgress();
             if (userProgress) {
               setProgress(userProgress);
               console.log('Progreso cargado desde el servidor');
             }
           } else {
-            // Si está offline, intentar cargar de almacenamiento local
             const offlineProgress = await OfflineService.getOfflineProgress();
             if (offlineProgress) {
               setProgress(offlineProgress);
@@ -103,30 +137,26 @@ export default function PracticeScreen() {
         }
       }
       
-      // Intentar sincronizar puntos pendientes si está online
       if (netInfo.isConnected && isAuthenticated) {
         try {
-          await OfflineService.syncPoints();
-          console.log('Puntos pendientes sincronizados al inicio');
+          await OfflineService.syncProgress();
+          console.log('Progreso pendiente sincronizado al inicio');
         } catch (syncError) {
-          console.error('Error al sincronizar puntos:', syncError);
+          console.error('Error al sincronizar progreso:', syncError);
         }
       }
     };
     
     initialize();
 
-    // Suscribirse a cambios de conexión
     const unsubscribe = NetInfo.addEventListener(state => {
       const wasOffline = isOffline;
       setIsOffline(!state.isConnected);
       
-      // Si recupera conexión, intentar sincronizar
       if (state.isConnected && wasOffline && isAuthenticated) {
-        OfflineService.syncPoints().then((success: boolean) => {
+        OfflineService.syncProgress().then((success: boolean) => {
           if (success) {
-            console.log('Puntos sincronizados después de recuperar conexión');
-            // Actualizar progreso
+            console.log('Progreso sincronizado después de recuperar conexión');
             ApiService.getUserProgress().then(updatedProgress => {
               if (updatedProgress) {
                 setProgress(updatedProgress);
@@ -143,19 +173,45 @@ export default function PracticeScreen() {
       unsubscribe();
     };
   }, [isAuthenticated]);
+  
+  // En el useEffect que maneja el desmontaje, añadir:
+  useEffect(() => {
+    return () => {
+      // Reiniciar los flags al desmontar
+      isSessionCompleted.current = false;
+      isSessionAbandoned.current = false;
+    };
+  }, []);
+
+  // Registrar un manejador de eventos para abandonos de sesión
+  useEffect(() => {
+    // Para React Native, usamos referencia global en lugar de window.addEventListener
+    if (typeof global !== 'undefined') {
+      // Definimos el manejador de sesiones abandonadas para comunicación entre componentes
+      (global as any).sessionAbandonHandler = () => {
+        console.log('Sesión abandonada detectada en PracticeScreen');
+        isSessionAbandoned.current = true;
+      };
+    }
+    
+    return () => {
+      // Limpiar el manejador al desmontar
+      if (typeof global !== 'undefined') {
+        delete (global as any).sessionAbandonHandler;
+      }
+    };
+  }, []);
 
   const loadProgress = async () => {
     if (!isAuthenticated) return;
     
     try {
       if (!isOffline) {
-        // Si está online, cargar del servidor
         const serverProgress = await ApiService.getUserProgress();
         if (serverProgress) {
           setProgress(serverProgress);
         }
       } else {
-        // Si está offline, cargar del almacenamiento local
         const localProgress = await OfflineService.getOfflineProgress();
         if (localProgress) {
           setProgress(localProgress);
@@ -172,12 +228,16 @@ export default function PracticeScreen() {
       setSelectedCategory(category);
       setSessionStartTime(Date.now());
       
-      // Verificar si hay ejercicios en caché para uso offline
+      // Reiniciar los flags de estado al empezar una nueva sesión
+      isSessionCompleted.current = false;
+      isSessionAbandoned.current = false;
+      
       const cachedExercises = await OfflineService.getOfflineExercises(category.id);
       
       if (isOffline && cachedExercises.length > 0) {
         console.log('Usando ejercicios en caché para modo offline');
-        setExercises(cachedExercises);
+        // LIMITAR A 5 EJERCICIOS
+        setExercises(cachedExercises.slice(0, 5));
         setShowExercises(true);
         
         if (isAuthenticated) {
@@ -186,17 +246,58 @@ export default function PracticeScreen() {
         return;
       }
       
-      // Intentar obtener ejercicios de la API
       try {
+        console.log(`Solicitando ejercicios para categoría: ${category.id}`);
         const exercisesData = await ApiService.getExercisesByCategory(category.id);
         
-        // Verificar que los datos sean válidos
-        if (exercisesData && Array.isArray(exercisesData) && exercisesData.length > 0) {
-          console.log(`Recibidos ${exercisesData.length} ejercicios del servidor`);
-          setExercises(exercisesData);
+        // Verificar estructura de la respuesta
+        console.log(`Tipo de datos recibidos: ${typeof exercisesData}`);
+        if (Array.isArray(exercisesData)) {
+          console.log('Datos recibidos como array');
+        } else if (typeof exercisesData === 'object') {
+          console.log('Datos recibidos como objeto:', Object.keys(exercisesData));
+        }
+        
+        let validExercises: any[] = [];
+        let validSessionId: number | null = null;
+        
+        // Extraer ejercicios y sessionId según el formato de respuesta
+        if (exercisesData && typeof exercisesData === 'object' && 'session_id' in exercisesData && 'exercises' in exercisesData) {
+          // Formato: { session_id: number, exercises: Array }
+          validSessionId = exercisesData.session_id;
+          validExercises = exercisesData.exercises;
+          console.log(`Formato A: ID de sesión encontrado: ${validSessionId}`);
+        } else if (Array.isArray(exercisesData) && exercisesData.length > 0) {
+          // Formato: Array de ejercicios
+          validExercises = exercisesData;
           
-          // Guardar en caché para uso offline
-          await OfflineService.cacheExercises(category.id, exercisesData);
+          // Intentar obtener sessionId de metadata
+          if (validExercises[0]?.metadata?.session_id) {
+            validSessionId = validExercises[0].metadata.session_id;
+            console.log(`Formato B: ID de sesión encontrado en metadata: ${validSessionId}`);
+          } else {
+            console.warn("No se encontró ID de sesión en los ejercicios");
+          }
+        } else {
+          console.warn('Formato de respuesta no reconocido:', exercisesData);
+          throw new Error('Formato de respuesta no válido');
+        }
+        
+        if (validExercises.length > 0) {
+          // LIMITAR A 5 EJERCICIOS
+          const limitedExercises = validExercises.slice(0, 5);
+          console.log(`Recibidos ${validExercises.length} ejercicios del servidor, limitando a ${limitedExercises.length}`);
+          
+          // Iniciar seguimiento solo si hay ID de sesión válido
+          if (validSessionId && !isNaN(validSessionId)) {
+            console.log(`Iniciando seguimiento de sesión: ${validSessionId}`);
+            startSession(validSessionId);
+          } else {
+            console.warn("No se recibió un ID de sesión válido, el seguimiento de abandono no estará disponible");
+          }
+          
+          setExercises(limitedExercises);
+          await OfflineService.cacheExercises(category.id, limitedExercises);
         } else {
           console.warn('No se recibieron ejercicios válidos del servidor');
           throw new Error('No se recibieron ejercicios válidos');
@@ -204,12 +305,11 @@ export default function PracticeScreen() {
       } catch (apiError) {
         console.error('Error al obtener ejercicios de API:', apiError);
         
-        // Si hay ejercicios en caché, usarlos como respaldo
         if (cachedExercises.length > 0) {
           console.log('Usando ejercicios en caché como respaldo');
-          setExercises(cachedExercises);
+          // LIMITAR A 5 EJERCICIOS
+          setExercises(cachedExercises.slice(0, 5));
         } else {
-          // Usar ejercicios predeterminados según la categoría
           console.log('Usando ejercicios predeterminados');
           setExercises(getFallbackExercises(category.id));
         }
@@ -231,24 +331,26 @@ export default function PracticeScreen() {
     }
   };
 
-  const handleExercisesComplete = async (points: number) => {
-    console.log(`Sesión completada con ${points} puntos totales`);
+  const handleExercisesComplete = async () => {
+    // Prevenir ejecuciones múltiples
+    if (isSessionCompleted.current || isSessionAbandoned.current) {
+      console.log('Sesión ya completada o abandonada, evitando procesamiento repetido');
+      return;
+    }
+    
+    console.log('Sesión de práctica completada');
     
     try {
-      // Calcular duración de la sesión en minutos
       const sessionDuration = Math.round((Date.now() - sessionStartTime) / 60000);
       
-      // 1. Si está autenticado y online, enviar puntos al servidor
       if (isAuthenticated && !isOffline) {
         try {
-          await ApiService.recordPoints(
-            points, 
+          await ApiService.recordProgress(
             'practice', 
             selectedCategory?.id || 'general'
           );
-          console.log('Puntos registrados en servidor');
+          console.log('Progreso registrado en servidor');
           
-          // Actualizar estado global de progreso inmediatamente
           try {
             const updatedProgress = await ApiService.getUserProgress();
             if (updatedProgress) {
@@ -259,33 +361,25 @@ export default function PracticeScreen() {
             console.error('Error al actualizar progreso:', progressError);
           }
         } catch (error) {
-          console.error('Error al registrar puntos en servidor:', error);
-          // Si falla, guardar para sincronizar después
-          await OfflineService.addPendingPoints(
-            points, 
+          console.error('Error al registrar progreso en servidor:', error);
+          await OfflineService.addPendingProgress(
             'practice', 
             selectedCategory?.id || 'general'
           );
         }
       } 
-      // 2. Si está offline o no autenticado, manejar localmente
       else if (isAuthenticated) {
-        // Guardar puntos pendientes
-        await OfflineService.addPendingPoints(
-          points, 
+        await OfflineService.addPendingProgress(
           'practice', 
           selectedCategory?.id || 'general'
         );
         
-        // Actualizar progreso local
         const updatedOfflineProgress = await OfflineService.updateOfflineProgress(
-          points, 
           'practice', 
           selectedCategory?.id || 'general'
         );
         
         if (updatedOfflineProgress) {
-          // Actualizar UI con datos locales
           setProgress(updatedOfflineProgress);
           console.log('Progreso actualizado localmente');
         }
@@ -293,21 +387,25 @@ export default function PracticeScreen() {
         if (isOffline) {
           Alert.alert(
             'Modo sin conexión',
-            'Los puntos se han guardado localmente y se sincronizarán cuando recuperes la conexión.'
+            'Tu progreso se ha guardado localmente y se sincronizará cuando recuperes la conexión.'
           );
         }
       }
+      
+      // Completar la sesión en el hook de seguimiento
+      if (isActive && sessionId && !isSessionAbandoned.current) {
+        completeSession();
+      }
+      
     } catch (error) {
-      console.error('Error al procesar puntos:', error);
-      // Intentar guardar localmente como fallback
+      console.error('Error al procesar progreso:', error);
       if (isAuthenticated) {
         try {
-          await OfflineService.addPendingPoints(
-            points, 
+          await OfflineService.addPendingProgress(
             'practice', 
             selectedCategory?.id || 'general'
           );
-          console.log('Puntos guardados localmente como fallback');
+          console.log('Progreso guardado localmente como fallback');
         } catch (fallbackError) {
           console.error('Error en fallback:', fallbackError);
         }
@@ -316,14 +414,18 @@ export default function PracticeScreen() {
   };
 
   const handleCloseExercises = () => {
+    console.log("PracticeScreen: handleCloseExercises llamado - CIERRE FORZADO");
+    
+    // Limpiar estado forzadamente, sin ninguna verificación
     setShowExercises(false);
     setSelectedCategory(null);
     setExercises([]);
+    
+    // Marcar la sesión como completada para evitar procesamiento adicional
+    isSessionCompleted.current = true;
   };
 
-  // Función para obtener ejercicios predeterminados por categoría
   const getFallbackExercises = (categoryId: string): any[] => {
-    // Ejercicios comunes para todas las categorías
     const baseExercises = [
       {
         id: 1001,
@@ -332,7 +434,6 @@ export default function PracticeScreen() {
         answer: 'yaku',
         distractors: ['unu', 'mayu', 'para'],
         difficulty: 1,
-        points: 10,
         object_translation: {
           id: 1001,
           spanish: 'agua',
@@ -349,7 +450,6 @@ export default function PracticeScreen() {
         answer: 'inti',
         distractors: ['killa', 'ch\'aska', 'hanan'],
         difficulty: 1,
-        points: 10,
         object_translation: {
           id: 1002,
           spanish: 'sol',
@@ -361,7 +461,6 @@ export default function PracticeScreen() {
       }
     ];
     
-    // Ejercicios específicos por categoría
     const categoryExercises: Record<string, any[]> = {
       'vocabulary': [
         {
@@ -370,7 +469,6 @@ export default function PracticeScreen() {
           question: 'Ordena las letras para formar la palabra en quechua que significa "casa"',
           answer: 'wasi',
           difficulty: 1,
-          points: 15,
           object_translation: {
             id: 2001,
             spanish: 'casa',
@@ -388,7 +486,6 @@ export default function PracticeScreen() {
           question: 'Completa: A_____ p\'unchay (Buenos días)',
           answer: 'Allin',
           difficulty: 1,
-          points: 10,
           object_translation: {
             id: 3001,
             spanish: 'Buenos días',
@@ -406,7 +503,6 @@ export default function PracticeScreen() {
           question: 'Une las palabras con su traducción',
           answer: '',
           difficulty: 1,
-          points: 20,
           distractors: {
             pairs: [
               { spanish: 'perro', quechua: 'allqu' },
@@ -429,7 +525,6 @@ export default function PracticeScreen() {
           question: 'Pronuncia la palabra "yaku" (agua)',
           answer: 'yaku',
           difficulty: 1,
-          points: 20,
           object_translation: {
             id: 5001,
             spanish: 'agua',
@@ -442,13 +537,15 @@ export default function PracticeScreen() {
       ]
     };
     
-    // Combinar ejercicios base con los específicos de la categoría
     const specificExercises = categoryExercises[categoryId] || [];
-    return [...baseExercises, ...specificExercises];
+    const allExercises = [...baseExercises, ...specificExercises];
+    
+    // LIMITAR A 5 EJERCICIOS
+    return allExercises.slice(0, 5);
   };
 
   const renderCategoryWithBadge = (category: PracticeCategory) => {
-    const badgeCount = Math.floor(Math.random() * 3) + 1; // Simulación de ejercicios nuevos
+    const badgeCount = Math.floor(Math.random() * 3) + 1;
     
     return (
       <TouchableOpacity
@@ -491,7 +588,6 @@ export default function PracticeScreen() {
       </View>
 
       <ScrollView style={styles.categoriesContainer}>
-        {/* Banner promocional */}
         <View style={styles.promotionBanner}>
           <Image 
             source={require('../../assets/chullo1.png')} 
@@ -506,7 +602,6 @@ export default function PracticeScreen() {
           </View>
         </View>
 
-        {/* Categorías de práctica */}
         <Text style={styles.sectionTitle}>Categorías de ejercicios</Text>
         {categories.map(renderCategoryWithBadge)}
       </ScrollView>
@@ -527,6 +622,18 @@ export default function PracticeScreen() {
           onComplete={handleExercisesComplete}
         />
       )}
+      
+      {/* Modal de abandono de sesión */}
+      {penaltyInfo && (
+        <AbandonSessionAlert
+          visible={abandonmentModalVisible}
+          onCancel={cancelAbandon}
+          onConfirm={confirmAbandon}
+          warningMessage={penaltyInfo.warning_message}
+          affectedWords={penaltyInfo.affected_words}
+          abandonmentConsequence={penaltyInfo.abandonment_consequence}
+        />
+      )}
     </View>
   );
 }
@@ -538,8 +645,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#FF0000',
-    padding: 20,
-    paddingTop: 50,
+    padding: 10,
+    paddingTop: 30,
     alignItems: 'center',
   },
   title: {
@@ -597,63 +704,63 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-},
-categoryInfo: {
-  flex: 1,
-  marginLeft: 16,
-},
-categoryTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  color: '#333',
-},
-categoryDescription: {
-  fontSize: 14,
-  color: '#666',
-  marginTop: 4,
-},
-badgeContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-newBadge: {
-  backgroundColor: '#FF9800',
-  paddingHorizontal: 8,
-  paddingVertical: 2,
-  borderRadius: 10,
-  marginRight: 8,
-},
-badgeText: {
-  color: 'white',
-  fontSize: 12,
-  fontWeight: 'bold',
-},
-promotionBanner: {
-  backgroundColor: '#E3F2FD',
-  flexDirection: 'row',
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 20,
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#BBDEFB',
-},
-promotionImage: {
-  width: 60,
-  height: 60,
-},
-promotionContent: {
-  flex: 1,
-  marginLeft: 12,
-},
-promotionTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  color: '#1976D2',
-},
-promotionText: {
-  fontSize: 14,
-  color: '#333',
-  marginTop: 4,
-},
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  categoryDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  newBadge: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  promotionBanner: {
+    backgroundColor: '#E3F2FD',
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  promotionImage: {
+    width: 60,
+    height: 60,
+  },
+  promotionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  promotionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1976D2',
+  },
+  promotionText: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 4,
+  },
 });

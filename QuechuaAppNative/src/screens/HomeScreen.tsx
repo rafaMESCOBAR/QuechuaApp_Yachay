@@ -1,17 +1,22 @@
-// src/screens/HomeScreen.tsx
+// src/screens/HomeScreen.tsx - GAMIFICADO SIN REDUNDANCIAS
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TutorialOverlay } from '../components/TutorialOverlay';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
   Practice: undefined;
   Progress: undefined;
+  Vocabulary: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -20,6 +25,7 @@ type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
+// ✅ MANTENER LOGO ORIGINAL
 const YachayLogo = () => (
   <View style={styles.logoContainer}>
     <Text style={styles.logoY}>y</Text>
@@ -33,9 +39,9 @@ const YachayLogo = () => (
 
 export default function HomeScreen({ navigation }: Props) {
   const [showTutorial, setShowTutorial] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Verificar si es la primera vez que el usuario abre la app
     const checkFirstTime = async () => {
       try {
         const hasSeenTutorial = await AsyncStorage.getItem('hasSeenTutorial');
@@ -46,11 +52,9 @@ export default function HomeScreen({ navigation }: Props) {
         console.error('Error verificando tutorial:', error);
       }
     };
-
     checkFirstTime();
   }, []);
 
-  // Manejo del tutorial
   const handleTutorialComplete = async () => {
     try {
       setShowTutorial(false);
@@ -61,180 +65,152 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Gamificado Simple */}
+      <LinearGradient
+        colors={['#FF0000', '#FF4444']}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
           <YachayLogo />
-        </View>
-      </View>
-
-      <View style={styles.heroSection}>
-        <View style={styles.leftContent}>
-          <Image
-            source={require('../../assets/chullo1.png')}
-            style={styles.mapImage}
-            resizeMode="contain"
-          />
+          
         </View>
         
-        <View style={styles.rightContent}>
-          <Text style={styles.heroText}>
-            ¡La forma divertida, efectiva{'\n'}para aprender el idioma{'\n'}Quechua!
-          </Text>
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Text style={styles.buttonText}>EMPIEZA AHORA</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Elementos decorativos animados */}
+         
+      </LinearGradient>
 
-      {/* Sección de acceso rápido a funcionalidades */}
-      <View style={styles.quickAccessSection}>
-        <Text style={styles.quickAccessTitle}>ACCESO RÁPIDO</Text>
-        <View style={styles.quickAccessGrid}>
-          <TouchableOpacity 
-            style={styles.quickAccessButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Ionicons name="camera" size={32} color="#FF0000" />
-            <Text style={styles.quickAccessText}>Detectar y Aprender</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickAccessButton}
-            onPress={() => navigation.navigate('Practice')}
-          >
-            <Ionicons name="book" size={32} color="#2196F3" />
-            <Text style={styles.quickAccessText}>Practicar y Jugar</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickAccessButton}
-            onPress={() => navigation.navigate('Progress')}
-          >
-            <Ionicons name="stats-chart" size={32} color="#4CAF50" />
-            <Text style={styles.quickAccessText}>Ver Progreso</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.scienceSection}>
-        <View style={styles.leftScience}>
-          <Image source={require('../../assets/chullo2.png')} style={styles.scienceIcon} />
-          <Text style={styles.scienceSubtitle}>KAMAQ YACHACHIOKUNA</Text>
-        </View>
-        <View style={styles.rightScience}>
-          <Text style={styles.sectionTitleRed}>Respaldado por la ciencia</Text>
-          <Text style={styles.sectionText}>
-            Gracias a la combinación de métodos de enseñanza basados en la evidencia y un
-            contenido entretenido, nuestra aplicación enseña de manera eficiente a leer, escribir,
-            entender y hablar quechua, revitalizando el idioma.
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.gamificationSection}>
-        <View style={styles.leftText}>
-          <Text style={styles.sectionTitleRed}>Divertido, efectivo</Text>
-          <Text style={styles.sectionText}>
-            La aplicación combinará gamificación e interactividad para hacer el aprendizaje del
-            quechua divertido y efectivo, promoviendo la cultura y facilitando la enseñanza
-            personalizada y accesible.
-          </Text>
-        </View>
-        <View style={styles.rightPuzzle}>
-          <Text style={styles.quechuaTitle}>PUKLLAYKUNSUNCHIK{'\n'}WAKAKUNA</Text>
-          <Image source={require('../../assets/puzzle.png')} style={styles.puzzleImage} />
-        </View>
-      </View>
-
-      <View style={styles.scienceSection}>
-        <View style={styles.leftScience}>
-          <Image source={require('../../assets/science.png')} style={styles.scienceIcon} />
-          <Text style={styles.scienceSubtitle}>KAMAQ YACHACHIOKUNA</Text>
-        </View>
-        <View style={styles.rightScience}>
-          <Text style={styles.sectionTitleRed}>Respaldado por la ciencia</Text>
-          <Text style={styles.sectionText}>
-            Gracias a la combinación de métodos de enseñanza basados en la evidencia y un
-            contenido entretenido, nuestra aplicación enseña de manera eficiente a leer, escribir,
-            entender y hablar quechua, revitalizando el idioma.
-          </Text>
-        </View>
-      </View>
-      
-      <View style={styles.gamificationSection}>
-        <View style={styles.leftText}>
-          <Text style={styles.sectionTitleRed}>motivación</Text>
-          <Text style={styles.sectionText}>
-            Al integrar lo mejor de la inteligencia artificial y la lingüística, nuestras
-            lecciones se ajustan a tu desempeño, permitiéndote aprender quechua al
-            nivel adecuado y a tu propio ritmo.
-          </Text>
-        </View>
-        <View style={styles.rightPuzzle}>
-          <Text style={styles.quechuaTitle}>Yachasun{'\n'}</Text>
-          <Image source={require('../../assets/llama.png')} style={styles.puzzleImage} />
-        </View>
-      </View>
-
-      <View style={styles.finalCtaSection}>
-        <Text style={styles.learnQuechuaText}>Aprende el idioma Quechua</Text>
-        <TouchableOpacity 
-          style={styles.startButtonGreen}
-          onPress={() => navigation.navigate('Camera')}
-        >
-          <Text style={styles.buttonText}>EMPIEZA AHORA</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navText}>INICIO</Text>
-        </TouchableOpacity>
+      <View style={styles.mainContent}>
         
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Camera')}
+        {/* Hero Card Principal - ACCIÓN PRINCIPAL */}
+        <LinearGradient
+          colors={['#FFFFFF', '#F8F9FA']}
+          style={styles.heroCard}
         >
-          <Text style={styles.navIcon}>📸</Text>
-        </TouchableOpacity>
+           
+          
+          <View style={styles.heroContent}>
+            <View style={styles.heroLeft}>
+              <Image
+                source={require('../../assets/chullo1.png')}
+                style={styles.heroImage}
+                resizeMode="contain"
+              />
+              <View style={styles.magicGlow} />
+            </View>
+            
+            <View style={styles.heroRight}>
+              <Text style={styles.heroTitle}>🎯 Detecta y Aprende</Text>
+              <Text style={styles.heroSubtitle}>
+                Apunta tu cámara a cualquier objeto y descubre su nombre en quechua
+              </Text>
+               
+            </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.mainActionButton}
+            onPress={() => navigation.navigate('Camera')}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#FF0000', '#FF3333']}
+              style={styles.actionGradient}
+            >
+              <Ionicons name="scan" size={28} color="white" />
+              <Text style={styles.actionButtonText}>¡DETECTAR AHORA!</Text>
+              <Ionicons name="arrow-forward" size={24} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </LinearGradient>
 
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>☰</Text>
-          <Text style={styles.navText}>MENÚ</Text>
-        </TouchableOpacity>
+        {/* Proceso Visual Gamificado */}
+        <View style={styles.processCard}>
+          <Text style={styles.processTitle}>🎮 Cómo funciona la magia</Text>
+          <View style={styles.processSteps}>
+            <View style={styles.processStep}>
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8E53']}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="camera" size={24} color="white" />
+              </LinearGradient>
+              <Text style={styles.stepTitle}>Apunta</Text>
+              <Text style={styles.stepDesc}>Tu cámara</Text>
+            </View>
+            
+            <View style={styles.magicArrow}>
+              <Ionicons name="flash" size={20} color="#FFD700" />
+            </View>
+            
+            <View style={styles.processStep}>
+              <LinearGradient
+                colors={['#4ECDC4', '#44A08D']}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="scan" size={24} color="white" />
+              </LinearGradient>
+              <Text style={styles.stepTitle}>Detecta</Text>
+              <Text style={styles.stepDesc}>Automágico</Text>
+            </View>
+            
+            <View style={styles.magicArrow}>
+              <Ionicons name="flash" size={20} color="#FFD700" />
+            </View>
+            
+            <View style={styles.processStep}>
+              <LinearGradient
+                colors={['#A8E6CF', '#7FCDCD']}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="school" size={24} color="white" />
+              </LinearGradient>
+              <Text style={styles.stepTitle}>Traduce</Text>
+              <Text style={styles.stepDesc}>¡Y aprende!</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Mensaje Inspiracional Gamificado */}
+        <LinearGradient
+          colors={['#ffecd2', '#fcb69f']}
+          style={styles.inspirationCard}
+        >
+          <View style={styles.inspirationHeader}>
+            <Text style={styles.llamaEmoji}>🦙</Text>
+            <Text style={styles.mountainEmoji}>🏔️</Text>
+            <Text style={styles.starEmoji}>⭐</Text>
+          </View>
+          <Text style={styles.inspirationTitle}>¡Conviértete en Guardián del Quechua!</Text>
+          <Text style={styles.inspirationText}>
+            Cada objeto que detectas ayuda a preservar una lengua milenaria
+          </Text>
+          <View style={styles.culturePattern}>
+            <Text style={styles.patternText}>◆ ◇ ◆ ◇ ◆</Text>
+          </View>
+        </LinearGradient>
       </View>
-      
-      {/* Tutorial de primera vez */}
+
+      {/* Tutorial Enfocado en ACCIÓN */}
       {showTutorial && (
         <TutorialOverlay 
           steps={[
             {
-              title: "¡Bienvenido a Yachay!",
-              description: "Aprende quechua de forma divertida detectando objetos a tu alrededor.",
-              icon: "bulb-outline",
+              title: "¡Bienvenido a Yachay! 🎉",
+              description: "Tu aventura para aprender quechua comienza aquí.",
+              icon: "rocket-outline",
               position: "top"
             },
             {
-              title: "Detecta Objetos",
-              description: "Usa la cámara para identificar objetos y descubrir su nombre en quechua.",
+              title: "Tu Súper Poder 📸",
+              description: "Tu cámara + nuestra IA = aprendizaje mágico de quechua.",
               icon: "camera-outline",
               position: "center"
             },
             {
-              title: "Juega y Aprende",
-              description: "Completa divertidos ejercicios, gana puntos y aprende mientras juegas.",
-              icon: "game-controller-outline",
-              position: "center"
-            },
-            {
-              title: "Practica tu Pronunciación",
-              description: "Escucha la correcta pronunciación y practica hablando.",
-              icon: "mic-outline",
+              title: "¡Solo Apunta y Aprende! 🎯",
+              description: "Toca el botón rojo y comienza tu aventura ahora mismo.",
+              icon: "play-outline",
               position: "bottom"
             }
           ]}
@@ -248,207 +224,251 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F7FA',
   },
+  
+  // Header Gamificado SIN stats
   header: {
-    backgroundColor: '#FF0000',
-    padding: 12,
-    paddingLeft: 15,
-  },
-  headerLeft: {
+    paddingTop: 10,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#F5F7FA',
     alignItems: 'flex-start',
+  },
+  headerContent: {
+    zIndex: 2,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  logoY: {
-    fontSize: 24,
-    color: '#0066CC',
-    fontWeight: 'bold',
+  logoY: { fontSize: 22, color: '#0066CC', fontWeight: 'bold' },
+  logoA1: { fontSize: 22, color: '#FF6600', fontWeight: 'bold' },
+  logoC: { fontSize: 22, color: '#0066CC', fontWeight: 'bold' },
+  logoH: { fontSize: 22, color: '#333333', fontWeight: 'bold' },
+  logoA2: { fontSize: 22, color: '#FF6600', fontWeight: 'bold' },
+  logoY2: { fontSize: 22, color: '#00CCFF', fontWeight: 'bold' },
+  subtitle: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  logoA1: {
-    fontSize: 24,
-    color: '#FF6600',
-    fontWeight: 'bold',
+  
+  // Elementos flotantes decorativos
+  floatingElements: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  logoC: {
-    fontSize: 24,
-    color: '#0066CC',
-    fontWeight: 'bold',
-  },
-  logoH: {
-    fontSize: 24,
-    color: '#333333',
-    fontWeight: 'bold',
-  },
-  logoA2: {
-    fontSize: 24,
-    color: '#FF6600',
-    fontWeight: 'bold',
-  },
-  logoY2: {
-    fontSize: 24,
-    color: '#00CCFF',
-    fontWeight: 'bold',
-  },
-  heroSection: {
-    flexDirection: 'row',
-    paddingVertical: 25,
-    paddingHorizontal: 15,
-  },
-  leftContent: {
-    flex: 1,
-  },
-  rightContent: {
-    flex: 1,
+  floatingIcon: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  mapImage: {
-    width: '95%',
-    height: 150,
-    resizeMode: 'cover',
+  float1: { top: 20, right: 30 },
+  float2: { top: 60, right: 80 },
+  float3: { bottom: 10, left: 40 },
+  floatingEmoji: { fontSize: 16 },
+  
+  // Contenido principal
+  mainContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 30,
   },
-  heroText: {
-    fontSize: 20,
-    marginBottom: 15,
+  
+  // Hero Card Principal
+  heroCard: {
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    elevation: 10,
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
   },
-  quickAccessSection: {
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+  heroHeader: {
+    marginBottom: 16,
   },
-  quickAccessTitle: {
-    fontSize: 18,
+  missionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE5E5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+  missionText: {
+    color: '#FF0000',
     fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  quickAccessGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-  },
-  quickAccessButton: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    width: '30%',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  quickAccessText: {
-    marginTop: 8,
     fontSize: 12,
-    textAlign: 'center',
+    marginLeft: 6,
   },
-  gamificationSection: {
+  heroContent: {
     flexDirection: 'row',
-    padding: 15,
-    marginVertical: 15,
-  },
-  leftText: {
-    flex: 1,
-    paddingRight: 15,
-  },
-  rightPuzzle: {
-    flex: 1,
     alignItems: 'center',
+    marginBottom: 20,
   },
-  puzzleImage: {
-    width: '95%',
-    height: 120,
-    resizeMode: 'cover',
+  heroLeft: {
+    position: 'relative',
+    marginRight: 20,
   },
-  quechuaTitle: {
-    fontSize: 18,
-    color: '#FF6B00',
-    textAlign: 'center',
+  heroImage: {
+    width: 80,
+    height: 80,
+  },
+  magicGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    backgroundColor: 'rgba(255,0,0,0.1)',
+    borderRadius: 50,
+    zIndex: -1,
+  },
+  heroRight: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
     marginBottom: 12,
   },
-  scienceSection: {
+  benefitsList: {
+    marginTop: 8,
+  },
+  benefit: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  
+  // Botón Principal
+  mainActionButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  actionGradient: {
     flexDirection: 'row',
-    padding: 15,
-    marginVertical: 15,
-  },
-  leftScience: {
-    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
   },
-  rightScience: {
-    flex: 2,
-    paddingLeft: 15,
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginHorizontal: 12,
   },
-  scienceIcon: {
-    width: '80%',
-    height: 80,
-    resizeMode: 'contain',
+  
+  // Proceso Visual
+  processCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  scienceSubtitle: {
-    fontSize: 14,
-    color: '#333333',
+  processTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  processSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  processStep: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    elevation: 4,
+  },
+  stepTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
+  },
+  stepDesc: {
+    fontSize: 10,
+    color: '#666',
+  },
+  magicArrow: {
+    marginHorizontal: 8,
+  },
+
+  // Mensaje Inspiracional
+  inspirationCard: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  inspirationHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  llamaEmoji: { fontSize: 24, marginHorizontal: 4 },
+  mountainEmoji: { fontSize: 20, marginHorizontal: 4 },
+  starEmoji: { fontSize: 16, marginHorizontal: 4 },
+  inspirationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
     marginBottom: 8,
   },
-  finalCtaSection: {
-    alignItems: 'center',
-    paddingVertical: 25,
-    marginBottom: 15,
-  },
-  startButton: {
-    backgroundColor: '#FF0000',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginTop: 15,
-  },
-  startButtonGreen: {
-    backgroundColor: '#00FF00',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginTop: 15,
-  },
-  learnQuechuaText: {
-    fontSize: 18,
-    color: '#00CCFF',
-    marginBottom: 15,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  inspirationText: {
+    fontSize: 14,
+    color: '#666',
     textAlign: 'center',
-  },
-  sectionTitleRed: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF0000',
+    lineHeight: 20,
     marginBottom: 12,
   },
-  sectionText: {
-    fontSize: 13,
-    lineHeight: 16,
-    textAlign: 'left',
+  culturePattern: {
+    marginTop: 8,
   },
-  navBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-  },
-  navItem: {
-    alignItems: 'center',
-  },
-  navIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  navText: {
-    fontSize: 11,
+  patternText: {
+    fontSize: 16,
+    color: '#999',
+    opacity: 0.7,
   },
 });
