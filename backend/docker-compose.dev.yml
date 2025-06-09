@@ -1,0 +1,49 @@
+# docker-compose.dev.yml - Para desarrollo con hot reload
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: yachay_dev
+      POSTGRES_USER: yachay_user
+      POSTGRES_PASSWORD: yachay_password
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: >
+      sh -c "
+        python manage.py wait_for_db &&
+        python manage.py migrate &&
+        python manage.py init_data &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/app  # Bind mount para hot reload
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgresql://yachay_user:yachay_password@db:5432/yachay_dev
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

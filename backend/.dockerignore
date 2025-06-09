@@ -1,0 +1,43 @@
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.cache
+.pytest_cache
+.mypy_cache
+
+# Django específico
+*.log
+local_settings.py
+# NO incluir db.sqlite3 porque queremos que se migre a PostgreSQL
+
+# OS específico
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker files (no copiar estos al contenedor)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# No copiar archivos de desarrollo
+README.md

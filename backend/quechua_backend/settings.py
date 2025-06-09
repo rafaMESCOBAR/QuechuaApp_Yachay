@@ -1,4 +1,3 @@
-#C:\QuechuaApp_Yachay\backend\quechua_backend\settings.py
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -49,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Movido aquí para mejor orden
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,7 +76,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 WSGI_APPLICATION = 'quechua_backend.wsgi.application'
 
@@ -108,7 +107,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Esta es la nueva línea que debes agregar
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -155,15 +154,8 @@ REST_FRAMEWORK = {
 # Configuración de archivos media (para uploads de audio, imágenes, etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Configuración mejorada de Jazzmin con descripciones detalladas
-# settings.py - Configuración optimizada de Jazzmin
-# settings.py - Configuración simplificada de Jazzmin para evitar interferencias
-# REEMPLAZA SOLO LA SECCIÓN JAZZMIN_SETTINGS
-
-# Configuración completa de Jazzmin para estructura jerárquica
 
 # Configuración completa de Jazzmin
-
 JAZZMIN_SETTINGS = {
     # Configuración básica
     "site_title": "Yachay Admin",
@@ -251,3 +243,118 @@ JAZZMIN_UI_TWEAKS = {
     "actions_sticky_top": False,
     "use_google_fonts_cdn": True
 }
+
+# ===== CONFIGURACIÓN ADICIONAL PARA DOCKER =====
+try:
+    import dj_database_url
+    HAS_DJ_DATABASE_URL = True
+except ImportError:
+    HAS_DJ_DATABASE_URL = False
+
+# Database configuration para Docker
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL and HAS_DJ_DATABASE_URL:
+    # Usar PostgreSQL en Docker
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
+    }
+# Si no hay DATABASE_URL, mantiene tu configuración SQLite actual
+
+# Configuración mejorada de archivos estáticos para Docker
+if DEBUG:
+    # Para desarrollo - sin compresión para evitar errores con archivos .map
+    STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+else:
+    # Para producción - con compresión pero ignorando archivos problemáticos
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ===== SOLUCIÓN DEFINITIVA PARA PROBLEMA WHITENOISE =====
+# Configuración de WhiteNoise para ignorar archivos problemáticos
+WHITENOISE_MANIFEST_STRICT = False  # 🔧 LÍNEA CRÍTICA AGREGADA
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 
+    'bz2', 'tbz', 'xz', 'br', 'map'  # Ignorar archivos .map problemáticos
+]
+
+# Configuración adicional de Whitenoise
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
+
+# ===== CONFIGURACIÓN DE REDIS PARA CACHÉ =====
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/1')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# Usar Redis como backend de sesiones (opcional pero recomendado)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+# ===== CONFIGURACIÓN DE LOGGING MEJORADA =====
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'translations': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Crear directorio de logs si no existe
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+# Configuración adicional para producción
+if not DEBUG:
+    # Configuraciones de seguridad para producción
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_SSL_REDIRECT = False  # Cambiar a True cuando tengas HTTPS
+    SESSION_COOKIE_SECURE = False  # Cambiar a True cuando tengas HTTPS
+    CSRF_COOKIE_SECURE = False  # Cambiar a True cuando tengas HTTPS
+    
+    # Logging más detallado en producción
+    LOGGING['handlers']['file']['level'] = 'ERROR'
+    LOGGING['loggers']['django']['level'] = 'ERROR'
