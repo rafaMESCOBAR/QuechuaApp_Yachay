@@ -102,8 +102,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'es'
+TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True
 
@@ -168,7 +168,7 @@ JAZZMIN_SETTINGS = {
     # Configuración básica
     "site_title": "Yachay Admin",
     "site_header": "Yachay",
-    "site_brand": "Yachay - Aprende",
+    "site_brand": "Yachay",
     "site_icon": "fas fa-language",
     "welcome_sign": "Bienvenido al Panel de Control de Yachay",
     "copyright": "Yachay - Aprendizaje de Quechua © 2025",

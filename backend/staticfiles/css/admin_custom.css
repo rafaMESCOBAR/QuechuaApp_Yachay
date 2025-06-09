@@ -1,9 +1,55 @@
-/* Estilos personalizados para el admin de Yachay */
+/* backend\translations\static\css\admin_custom.css */
+
+/* Estilos personalizados para el admin de Yachay - Versión optimizada */
+
+/* NUEVOS ESTILOS PARA EL MENÚ PERSONALIZADO */
+.sidebar .nav-header {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+    color: rgba(255,255,255,0.5) !important;
+    text-transform: uppercase;
+    font-size: 12px;
+    padding: 0.5rem 1rem;
+}
+
+.sidebar .nav-treeview .nav-item {
+    margin-left: 10px; 
+}
+
+.sidebar .nav-treeview .nav-link {
+    padding-left: 25px;
+    font-size: 0.9rem;
+}
+
+.sidebar {
+    padding-bottom: 60px; /* Espacio para scroll */
+}
+
+/* Mantener menús expandidos */
+.nav-item.has-treeview.menu-open > .nav-treeview {
+    display: block !important;
+}
+
+/* Destacar item de menú activo - versión mejorada */
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link.active, 
+.sidebar-dark-danger .nav-treeview > .nav-item > .nav-link.active {
+    background-color: rgba(220, 53, 69, 0.9);
+    color: #fff;
+}
+
+/* ESTILOS ORIGINALES */
 
 /* Tamaños consistentes para las tarjetas */
 .card {
     height: 100%;
     margin-bottom: 20px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 /* Asegurar que los contenedores de secciones tengan altura igual */
@@ -31,25 +77,186 @@
     justify-content: space-between;
 }
 
-/* Estilos para las tarjetas de acciones rápidas */
-.action-card {
-    height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.3s;
-}
-
-.action-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
 /* Asegurar espaciado entre secciones */
 .section-header {
     margin-top: 30px;
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
+}
+
+/* Estilo para la línea divisoria entre secciones */
+.section-divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 30px 0;
+}
+
+/* Mejorar visualización de la timeline */
+.timeline {
+    position: relative;
+    margin: 0 0 30px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.timeline > div {
+    margin-right: 10px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.timeline-item {
+    box-shadow: 0 0 1px rgba(0,0,0,0.1);
+    border-radius: 5px;
+    margin-top: 0;
+    background-color: #fff;
+    padding: 10px;
+    position: relative;
+    margin-left: 45px;
+    transition: background-color 0.2s ease;
+}
+
+.timeline-item:hover {
+    background-color: #f8f9fa;
+}
+
+.time-label {
+    margin-bottom: 10px;
+}
+
+.time-label span {
+    padding: 5px 10px;
+    display: inline-block;
+    border-radius: 3px;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Mejoras para tabla de datos */
+.table-container {
+    overflow-x: auto;
+}
+
+.data-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.data-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Estilos para reproductores de audio */
+audio {
+    max-width: 100%;
+    margin-top: 5px;
+    border-radius: 20px;
+    height: 35px;
+}
+
+/* Estilos para resaltar pestañas activas */
+.nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+    color: #dc3545;
+    font-weight: bold;
+    border-color: #dee2e6 #dee2e6 #fff;
+}
+
+/* Estilos para badges y etiquetas */
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+}
+
+/* Mejorar visualización en dispositivos móviles */
+@media (max-width: 767.98px) {
+    .small-box h3 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Estilos para equal-height cards */
+.equal-height-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.equal-height-row > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+}
+
+.equal-height-row > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.equal-height-row .card {
+    flex: 1;
+}
+
+.equal-height-cards {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.equal-height-cards > div {
+    display: flex;
+}
+
+.equal-height-cards .small-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin-bottom: 0;
+}
+
+.small-box .small-box-footer {
+    margin-top: auto;
+}
+
+/* Mejorar visualización de JSON */
+pre.json-data {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 300px;
+    overflow: auto;
+    font-family: monospace;
+}
+
+/* Estilos para títulos y subtítulos */
+.content h1 {
+    margin-bottom: 5px;
+}
+
+.content .help {
+    color: #6c757d;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+/* Estilizar los mensajes de error */
+.text-danger {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Mejoras para pequeños botones en tablas */
+.field-audio_player audio {
+    width: 200px;
 }
