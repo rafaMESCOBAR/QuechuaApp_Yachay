@@ -59,12 +59,13 @@ RUN mkdir -p staticfiles media logs /tmp/matplotlib /tmp/ultralytics \
 # Cambiar a usuario no-root
 USER yachay
 
-# 🔧 CAMBIO PARA RENDER: Puerto dinámico
-EXPOSE $PORT
+EXPOSE 10000
 
-# 🔧 CAMBIO PARA RENDER: Health check adaptado
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:$PORT/api/detection/status/ || exit 1
+    CMD curl -f http://localhost:10000/api/detection/status/ || exit 1
 
-# 🔧 CAMBIO PARA RENDER: CMD con puerto dinámico
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 3 --timeout 120 quechua_backend.wsgi:application
+CMD python manage.py wait_for_db && \
+    python manage.py migrate && \
+    python manage.py init_data && \
+    python manage.py collectstatic --noinput --clear && \
+    gunicorn --bind 0.0.0.0:$PORT --workers 3 --timeout 120 quechua_backend.wsgi:application

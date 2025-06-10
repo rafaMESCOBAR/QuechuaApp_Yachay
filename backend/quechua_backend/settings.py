@@ -1,6 +1,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import json
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -8,31 +9,52 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# ===== VARIABLES DE ENTORNO CORREGIDAS PARA RENDER =====
+# SECRET KEY - Render generará automáticamente DJANGO_SECRET_KEY
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-your-default-secret-key-here')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# DEBUG - Render configurará esto como 'false'
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-# Leer ALLOWED_HOSTS desde el archivo .env
+# ALLOWED_HOSTS - Render configurará esto correctamente
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
-# OpenAI API Key (para ejercicios generados por IA)
+# ✅ API Keys que deberás configurar en Render
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-print(f"OpenAI API Key configurada: {'Sí' if OPENAI_API_KEY else 'No'}")
-
-# Google Client ID para verificación de tokens
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', 'your-google-client-id-here')
-
-# Google Cloud API Key para servicios de Google
 GOOGLE_CLOUD_API_KEY = os.getenv('GOOGLE_CLOUD_API_KEY', '')
 
-# Firebase credentials path
-FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', os.path.join(BASE_DIR, 'firebase-credentials.json'))
+# ✅ Firebase credentials para Render (como string JSON, no archivo)
+FIREBASE_CREDENTIALS_JSON = os.getenv('FIREBASE_CREDENTIALS_JSON', '{}')
 
-# Application definition
+# ✅ Validación silenciosa para evitar prints en producción
+if DEBUG:
+    print(f"OpenAI API Key configurada: {'Sí' if OPENAI_API_KEY else 'No'}")
+    print(f"Google Client ID configurado: {'Sí' if GOOGLE_CLIENT_ID else 'No'}")
+    print(f"Firebase configurado: {'Sí' if FIREBASE_CREDENTIALS_JSON != '{}' else 'No'}")
+
+# ===== CONFIGURACIÓN FIREBASE PARA RENDER =====
+try:
+    if FIREBASE_CREDENTIALS_JSON and FIREBASE_CREDENTIALS_JSON != '{}':
+        # En Render, Firebase credentials vienen como JSON string
+        FIREBASE_CREDENTIALS = json.loads(FIREBASE_CREDENTIALS_JSON)
+    else:
+        # Para desarrollo local con archivo
+        FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', 
+                                            os.path.join(BASE_DIR, 'firebase-credentials.json'))
+        if os.path.exists(FIREBASE_CREDENTIALS_PATH):
+            with open(FIREBASE_CREDENTIALS_PATH, 'r') as f:
+                FIREBASE_CREDENTIALS = json.load(f)
+        else:
+            FIREBASE_CREDENTIALS = None
+except (json.JSONDecodeError, FileNotFoundError):
+    FIREBASE_CREDENTIALS = None
+    if DEBUG:
+        print("⚠️ Firebase credentials no configuradas correctamente")
+
+# ===== APLICACIONES INSTALADAS =====
 INSTALLED_APPS = [
-    'jazzmin',  # Añade esta línea al principio
+    'jazzmin',  # Admin theme
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,13 +64,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'translations',
+    'translations',      # App de traducciones
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Movido aquí para mejor orden
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para archivos estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -63,7 +85,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'translations/templates'),  # Aquí defines la ruta a tus plantillas
+            os.path.join(BASE_DIR, 'translations/templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -79,13 +101,45 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'quechua_backend.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# ===== CONFIGURACIÓN DE BASE DE DATOS PARA RENDER =====
+try:
+    import dj_database_url
+    HAS_DJ_DATABASE_URL = True
+except ImportError:
+    HAS_DJ_DATABASE_URL = False
 
+# Configuración de base de datos
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL and HAS_DJ_DATABASE_URL:
+    # Render PostgreSQL
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    except Exception as e:
+        if DEBUG:
+            print(f"Error configurando DATABASE_URL: {e}")
+        # Fallback a SQLite
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+else:
+    # Desarrollo local con SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -101,17 +155,20 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Internationalization
 LANGUAGE_CODE = 'es'
 TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True
 
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuración CORS
+# ===== CONFIGURACIÓN CORS =====
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -134,11 +191,11 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# settings.py
+# File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
-# Configuración de autenticación REST Framework
+# ===== CONFIGURACIÓN REST FRAMEWORK =====
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -151,11 +208,11 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
-# Configuración de archivos media (para uploads de audio, imágenes, etc.)
+# Media files (uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Configuración completa de Jazzmin
+# ===== CONFIGURACIÓN JAZZMIN =====
 JAZZMIN_SETTINGS = {
     # Configuración básica
     "site_title": "Yachay Admin",
@@ -178,6 +235,9 @@ JAZZMIN_SETTINGS = {
         # Aplicaciones
         "auth": "fas fa-shield-alt",
         "translations": "fas fa-language",
+        "detection": "fas fa-eye",
+        "exercises": "fas fa-tasks",
+        "user_management": "fas fa-users-cog",
         
         # Modelos principales
         "auth.user": "fas fa-user",
@@ -204,13 +264,11 @@ JAZZMIN_SETTINGS = {
     # Búsqueda personalizada
     "search_model": "auth.user",
     
-    # No usamos un menú estático personalizado porque lo haremos con JavaScript
-    # para mayor flexibilidad y control
     "custom_css": "css/admin_custom.css",
     "custom_js": "js/custom_menu.js"
 }
 
-# Mantener la configuración visual de Jazzmin
+# Configuración visual de Jazzmin
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
     "footer_small_text": False,
@@ -244,23 +302,7 @@ JAZZMIN_UI_TWEAKS = {
     "use_google_fonts_cdn": True
 }
 
-# ===== CONFIGURACIÓN ADICIONAL PARA DOCKER =====
-try:
-    import dj_database_url
-    HAS_DJ_DATABASE_URL = True
-except ImportError:
-    HAS_DJ_DATABASE_URL = False
-
-# Database configuration para Docker
-DATABASE_URL = os.getenv('DATABASE_URL')
-if DATABASE_URL and HAS_DJ_DATABASE_URL:
-    # Usar PostgreSQL en Docker
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
-    }
-# Si no hay DATABASE_URL, mantiene tu configuración SQLite actual
-
-# Configuración mejorada de archivos estáticos para Docker
+# ===== CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS PARA RENDER =====
 if DEBUG:
     # Para desarrollo - sin compresión para evitar errores con archivos .map
     STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
@@ -268,12 +310,11 @@ else:
     # Para producción - con compresión pero ignorando archivos problemáticos
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ===== SOLUCIÓN DEFINITIVA PARA PROBLEMA WHITENOISE =====
 # Configuración de WhiteNoise para ignorar archivos problemáticos
-WHITENOISE_MANIFEST_STRICT = False  # 🔧 LÍNEA CRÍTICA AGREGADA
+WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = [
     'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 
-    'bz2', 'tbz', 'xz', 'br', 'map'  # Ignorar archivos .map problemáticos
+    'bz2', 'tbz', 'xz', 'br', 'map'
 ]
 
 # Configuración adicional de Whitenoise
@@ -297,7 +338,7 @@ CACHES = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
-# ===== CONFIGURACIÓN DE LOGGING MEJORADA =====
+# ===== CONFIGURACIÓN DE LOGGING =====
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -312,12 +353,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -330,44 +365,56 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'translations': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'detection': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'exercises': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'user_management': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
 
-# Crear directorio de logs si no existe
-LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-os.makedirs(LOGS_DIR, exist_ok=True)
-
-# Configuración adicional para producción
-if not DEBUG:
-    # Configuraciones de seguridad para producción
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_SSL_REDIRECT = False  # Cambiar a True cuando tengas HTTPS
-    SESSION_COOKIE_SECURE = False  # Cambiar a True cuando tengas HTTPS
-    CSRF_COOKIE_SECURE = False  # Cambiar a True cuando tengas HTTPS
+# Crear directorio de logs si no existe (solo en desarrollo)
+if DEBUG:
+    LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+    os.makedirs(LOGS_DIR, exist_ok=True)
     
-    # Logging más detallado en producción
-    LOGGING['handlers']['file']['level'] = 'ERROR'
-    LOGGING['loggers']['django']['level'] = 'ERROR'
-
+    # Agregar file handler solo en desarrollo
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': os.path.join(LOGS_DIR, 'django.log'),
+        'formatter': 'verbose',
+    }
+    
+    # Agregar file handler a los loggers
+    for logger in LOGGING['loggers'].values():
+        logger['handlers'].append('file')
 
 # ===== CONFIGURACIÓN ESPECÍFICA PARA RENDER =====
-# (Agregar después de toda tu configuración existente)
-
-# Detectar si estamos en Render
 RENDER = os.getenv('RENDER', False)
 
 if RENDER:
-    print("🚀 Configurando para Render...")
+    if DEBUG:
+        print("🚀 Configurando para Render...")
     
     # ⚙️ OVERRIDE configuraciones para producción en Render
     DEBUG = False
@@ -376,9 +423,10 @@ if RENDER:
     ALLOWED_HOSTS = [
         '.onrender.com',
         'yachay-backend.onrender.com',
+        'yachay-backend-wdlr.onrender.com',  # Tu URL específica
         'localhost',
         '127.0.0.1'
-    ] + ALLOWED_HOSTS  # Mantener los existentes también
+    ] + ALLOWED_HOSTS
     
     # 🗄️ Database override para Render PostgreSQL
     if os.getenv('DATABASE_URL'):
@@ -406,7 +454,7 @@ if RENDER:
         SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
         SESSION_CACHE_ALIAS = 'default'
     
-    # 📁 Static files para Render (mantener configuración existente pero asegurar)
+    # 📁 Static files para Render
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
@@ -415,38 +463,5 @@ if RENDER:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     
-    # 📊 Logging simplificado para Render (solo consola)
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'verbose',
-            },
-        },
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {message}',
-                'style': '{',
-            },
-        },
-        'root': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'loggers': {
-            'django': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'translations': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-        },
-    }
-    
-    print("✅ Configuración de Render aplicada correctamente")
+    if DEBUG:
+        print("✅ Configuración de Render aplicada correctamente")
