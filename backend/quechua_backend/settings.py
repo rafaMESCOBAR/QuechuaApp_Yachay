@@ -302,7 +302,9 @@ JAZZMIN_UI_TWEAKS = {
     "use_google_fonts_cdn": True
 }
 
-STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage' 
+# ===== CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS PARA RENDER =====
+# 🔧 SOLUCIÓN: Sin compresión en NINGÚN entorno para evitar errores .map
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
 # Configuración de WhiteNoise para ignorar archivos problemáticos
 WHITENOISE_MANIFEST_STRICT = False
@@ -448,9 +450,10 @@ if RENDER:
         SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
         SESSION_CACHE_ALIAS = 'default'
     
-    # 📁 Static files para Render
+    # 📁 Static files para Render - ✅ CORREGIDO: Sin compresión
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    # 🔧 MANTENER sin compresión para evitar errores con archivos .map
+    # STATICFILES_STORAGE ya está configurado arriba como StaticFilesStorage
     
     # 🔒 Configuración de seguridad para producción
     SECURE_BROWSER_XSS_FILTER = True
