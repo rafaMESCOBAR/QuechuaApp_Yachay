@@ -1258,27 +1258,43 @@ def calculate_similarity(a, b):
 
 # Inicializar Firebase Admin SDK (solo una vez)
 def initialize_firebase():
-   try:
-       if not firebase_admin._apps:
-           # Ruta al archivo de credenciales (debes crearlo)
-           firebase_cred_path = os.path.join(settings.BASE_DIR, 'firebase-credentials.json')
-           if not os.path.exists(firebase_cred_path):
-               raise ImproperlyConfigured(
-                   "Firebase credentials file not found. Create a service account key in Firebase console "
-                   "and save it as 'firebase-credentials.json' in your project root."
-               )
-           
-           cred = credentials.Certificate(firebase_cred_path)
-           firebase_admin.initialize_app(cred)
-           print("Firebase inicializado correctamente")
-       else:
-           print("Firebase ya estaba inicializado")
-   except Exception as e:
-       logger.error(f"Error en autenticación Firebase: {str(e)}", exc_info=True)
-       return Response(
-           {'error': f'Error en el servidor: {str(e)}'}, 
-           status=status.HTTP_500_INTERNAL_SERVER_ERROR
-       )
+    """Inicializar Firebase Admin SDK con soporte para Render"""
+    try:
+        if not firebase_admin._apps:
+            # 🔧 MÉTODO 1: Variable de entorno JSON (Render)
+            firebase_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if firebase_json and firebase_json != '{}':
+                try:
+                    credentials_dict = json.loads(firebase_json)
+                    cred = credentials.Certificate(credentials_dict)
+                    firebase_admin.initialize_app(cred)
+                    logger.info("✅ Firebase inicializado desde variable de entorno JSON")
+                    return
+                except Exception as e:
+                    logger.warning(f"⚠️ Error con credentials JSON de entorno: {e}")
+            
+            # 🔧 MÉTODO 2: Archivo local (desarrollo)
+            firebase_cred_path = os.path.join(settings.BASE_DIR, 'firebase-credentials.json')
+            if os.path.exists(firebase_cred_path):
+                try:
+                    cred = credentials.Certificate(firebase_cred_path)
+                    firebase_admin.initialize_app(cred)
+                    logger.info("✅ Firebase inicializado desde archivo local")
+                    return
+                except Exception as e:
+                    logger.warning(f"⚠️ Error con archivo local: {e}")
+            
+            # Si ningún método funciona, lanzar error específico
+            raise ImproperlyConfigured(
+                "No se encontraron credenciales válidas de Firebase. "
+                "Configura FIREBASE_CREDENTIALS_JSON en las variables de entorno de Render."
+            )
+        else:
+            logger.info("✅ Firebase ya estaba inicializado")
+            
+    except Exception as e:
+        logger.error(f"❌ Error en autenticación Firebase: {str(e)}", exc_info=True)
+        raise ImproperlyConfigured(f"Error al inicializar Firebase: {str(e)}")
 
 # Intentar inicializar Firebase al cargar la aplicación
 initialize_firebase()
