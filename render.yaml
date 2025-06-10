@@ -1,4 +1,4 @@
-# render.yaml - Configuración corregida sin errores
+# render.yaml - Con PostgreSQL gratuito para pruebas
 services:
   # Servicio web principal
   - type: web
@@ -6,7 +6,7 @@ services:
     env: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend/
-    plan: starter
+    plan: starter                     
     healthCheckPath: /api/detection/status/
     envVars:
       - key: RENDER
@@ -30,7 +30,7 @@ services:
   # Servicio Redis
   - type: redis
     name: yachay-redis
-    plan: starter
+    plan: starter                     
     maxmemoryPolicy: allkeys-lru
     ipAllowList:
       - source: 0.0.0.0/0
@@ -39,6 +39,6 @@ services:
 # Base de datos PostgreSQL
 databases:
   - name: yachay-postgres
-    plan: starter
+    plan: free                       
     databaseName: yachay
     user: yachay_user
