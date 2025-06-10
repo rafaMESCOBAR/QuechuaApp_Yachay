@@ -350,9 +350,10 @@ CACHES = {
 }
 
 # Usar Redis como backend de sesiones (opcional pero recomendado)
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 horas
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # ===== CONFIGURACIÓN DE LOGGING OPTIMIZADA =====
 LOGGING = {
