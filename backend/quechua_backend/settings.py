@@ -302,13 +302,7 @@ JAZZMIN_UI_TWEAKS = {
     "use_google_fonts_cdn": True
 }
 
-# ===== CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS PARA RENDER =====
-if DEBUG:
-    # Para desarrollo - sin compresión para evitar errores con archivos .map
-    STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
-else:
-    # Para producción - con compresión pero ignorando archivos problemáticos
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage' 
 
 # Configuración de WhiteNoise para ignorar archivos problemáticos
 WHITENOISE_MANIFEST_STRICT = False
