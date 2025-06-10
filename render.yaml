@@ -1,11 +1,11 @@
-# render.yaml - En la raíz del proyecto backend/
+# render.yaml - Configuración corregida sin errores
 services:
   # Servicio web principal
   - type: web
     name: yachay-backend
     env: docker
-    dockerfilePath: ./Dockerfile
-    dockerContext: ./
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend/
     plan: starter
     healthCheckPath: /api/detection/status/
     envVars:
@@ -26,20 +26,15 @@ services:
           name: yachay-redis
           type: redis
           property: connectionString
-    buildCommand: |
-      echo "Ejecutando comandos de build..."
-      python manage.py collectstatic --noinput --clear
-    startCommand: |
-      python manage.py wait_for_db &&
-      python manage.py migrate &&
-      python manage.py init_data &&
-      gunicorn --bind 0.0.0.0:$PORT --workers 3 --timeout 120 quechua_backend.wsgi:application
 
   # Servicio Redis
   - type: redis
     name: yachay-redis
     plan: starter
     maxmemoryPolicy: allkeys-lru
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: Allow all connections
 
 # Base de datos PostgreSQL
 databases:
