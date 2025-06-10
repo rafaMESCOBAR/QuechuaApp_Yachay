@@ -18,6 +18,11 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 # ALLOWED_HOSTS - Render configurará esto correctamente
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    'https://yachay-backend-6nf9.onrender.com',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
 
 # ✅ API Keys que deberás configurar en Render
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
@@ -93,7 +98,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.messages',
             ],
         },
     },
@@ -317,7 +322,7 @@ WHITENOISE_SKIP_COMPRESS_EXTENSIONS = [
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = DEBUG
 
-# ===== CONFIGURACIÓN DE REDIS PARA CACHÉ =====
+# ===== CONFIGURACIÓN DE REDIS PARA CACHÉ - OPTIMIZADA =====
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/1')
 
 CACHES = {
@@ -326,15 +331,30 @@ CACHES = {
         'LOCATION': REDIS_URL,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            # 🔧 OPTIMIZACIONES DE RENDIMIENTO CRÍTICAS
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 20,
+                'retry_on_timeout': True,
+                'socket_keepalive': True,
+                'socket_keepalive_options': {},
+                'health_check_interval': 30,
+            },
+            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,
+        },
+        'TIMEOUT': 300,  # 5 minutos
+        'KEY_PREFIX': 'yachay',
+        'VERSION': 1,
     }
 }
 
 # Usar Redis como backend de sesiones (opcional pero recomendado)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
+SESSION_COOKIE_AGE = 86400  # 24 horas
 
-# ===== CONFIGURACIÓN DE LOGGING =====
+# ===== CONFIGURACIÓN DE LOGGING OPTIMIZADA =====
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -357,12 +377,12 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'WARNING' if not DEBUG else 'INFO',  # Menos logs en producción
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'WARNING' if not DEBUG else 'INFO',
             'propagate': False,
         },
         'translations': {
@@ -383,6 +403,17 @@ LOGGING = {
         'user_management': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        # 🔧 REDUCIR LOGS DE ULTRALYTICS/YOLO
+        'ultralytics': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'yolov8': {
+            'handlers': ['console'],
+            'level': 'WARNING',
             'propagate': False,
         },
     },
@@ -443,6 +474,13 @@ if RENDER:
                 'LOCATION': RENDER_REDIS_URL,
                 'OPTIONS': {
                     'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                    'CONNECTION_POOL_KWARGS': {
+                        'max_connections': 10,  # Menos conexiones en Render
+                        'retry_on_timeout': True,
+                        'socket_keepalive': True,
+                        'health_check_interval': 30,
+                    },
+                    'IGNORE_EXCEPTIONS': True,
                 }
             }
         }
@@ -460,5 +498,28 @@ if RENDER:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     
+    # 🔧 CONFIGURACIONES ESPECÍFICAS PARA RENDER
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    
     if DEBUG:
         print("✅ Configuración de Render aplicada correctamente")
+
+# 🔧 CONFIGURACIONES DE RENDIMIENTO ADICIONALES
+if not DEBUG:
+    # Optimizaciones para producción
+    CONN_MAX_AGE = 60
+    
+    # Configuración de sesiones optimizada
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    
+    # Cache de templates
+    TEMPLATES[0]['OPTIONS']['loaders'] = [
+        ('django.template.loaders.cached.Loader', [
+            'django.template.loaders.filesystem.Loader',
+            'django.template.loaders.app_directories.Loader',
+        ]),
+    ]
