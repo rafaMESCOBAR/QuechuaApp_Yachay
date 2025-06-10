@@ -24,7 +24,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     ports:
@@ -42,20 +42,19 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    # 🔧 CONFIGURACIÓN OPTIMIZADA: Solo 2 workers para evitar timeouts
     command: >
       sh -c "
         echo 'Esperando base de datos...' &&
         python manage.py wait_for_db &&
-        echo 'Limpiando archivos estáticos conflictivos...' &&
-        rm -rf /app/staticfiles/* &&
         echo 'Ejecutando migraciones...' &&
         python manage.py migrate &&
         echo 'Cargando datos iniciales...' &&
         python manage.py init_data &&
         echo 'Recolectando archivos estáticos...' &&
-        python manage.py collectstatic --noinput &&
-        echo 'Iniciando servidor...' &&
-        gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 quechua_backend.wsgi:application
+        python manage.py collectstatic --noinput --clear &&
+        echo 'Iniciando servidor optimizado...' &&
+        gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 --max-requests 1000 --max-requests-jitter 100 --worker-connections 1000 quechua_backend.wsgi:application
       "
     volumes:
       - static_volume:/app/staticfiles
@@ -64,11 +63,23 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # 🔧 CAMBIO CRÍTICO: Cambiar DEBUG=False por DEBUG=True
-      - DEBUG=True  # ← ESTE ES EL ÚNICO CAMBIO NECESARIO
+      # 🔧 CORRECCIÓN: DEBUG=False para producción local
+      - DEBUG=False
       - DATABASE_URL=postgresql://yachay_user:yachay_password@db:5432/yachay
       - REDIS_URL=redis://redis:6379/1
       - ALLOWED_HOSTS=*,127.0.0.1,localhost,192.168.137.110
+      # 🔧 VARIABLES ADICIONALES para optimización
+      - DJANGO_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    # 🔧 LÍMITES DE MEMORIA CRÍTICOS
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
     depends_on:
       db:
         condition: service_healthy
@@ -78,11 +89,13 @@ services:
       - .env
     networks:
       - yachay-network
+    # 🔧 HEALTH CHECK CORREGIDO: Usar endpoint más estable
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/detection/status/"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/admin/login/ || exit 1"]
+      interval: 60s
+      timeout: 15s
       retries: 3
+      start_period: 90s  # Más tiempo para inicialización
 
   nginx:
     image: nginx:alpine
@@ -90,21 +103,34 @@ services:
     ports:
       - "80:80"
     volumes:
-      - static_volume:/var/www/static
-      - media_volume:/var/www/media
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/var/www/static:ro
+      - media_volume:/var/www/media:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - web
     networks:
       - yachay-network
+    # 🔧 LÍMITES PARA NGINX TAMBIÉN
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   static_volume:
+    driver: local
   media_volume:
+    driver: local
   logs_volume:
+    driver: local
 
 networks:
   yachay-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

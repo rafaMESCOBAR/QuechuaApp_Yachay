@@ -1,4 +1,4 @@
-# docker-compose.dev.yml - Para desarrollo con hot reload
+# docker-compose.dev.yml - Para desarrollo con hot reload OPTIMIZADO
 version: '3.8'
 
 services:
@@ -12,20 +12,36 @@ services:
       POSTGRES_PASSWORD: yachay_password
     ports:
       - "5432:5432"
+    # 🔧 LÍMITES TAMBIÉN EN DESARROLLO
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   redis:
     image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
+    # 🔧 LÍMITES PARA REDIS EN DEV
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
 
   web:
     build: .
+    # 🔧 COMANDO OPTIMIZADO PARA DESARROLLO con hot reload
     command: >
       sh -c "
         python manage.py wait_for_db &&
         python manage.py migrate &&
         python manage.py init_data &&
-        python manage.py runserver 0.0.0.0:8000
+        python manage.py collectstatic --noinput &&
+        echo 'Iniciando en modo desarrollo con hot reload...' &&
+        gunicorn --bind 0.0.0.0:8000 --workers 1 --reload --timeout 60 quechua_backend.wsgi:application
       "
     volumes:
       - .:/app  # Bind mount para hot reload
@@ -37,11 +53,28 @@ services:
       - DEBUG=True
       - DATABASE_URL=postgresql://yachay_user:yachay_password@db:5432/yachay_dev
       - REDIS_URL=redis://redis:6379/1
+      - DJANGO_LOG_LEVEL=DEBUG
+    # 🔧 LÍMITES DE MEMORIA PARA DESARROLLO (más generosos pero controlados)
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     depends_on:
       - db
       - redis
     env_file:
       - .env
+    # 🔧 HEALTH CHECK PARA DEV
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/admin/login/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
 
 volumes:
   postgres_data:
