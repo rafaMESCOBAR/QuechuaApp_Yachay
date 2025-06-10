@@ -1,0 +1,49 @@
+# render.yaml - En la raíz del proyecto backend/
+services:
+  # Servicio web principal
+  - type: web
+    name: yachay-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    plan: starter
+    healthCheckPath: /api/detection/status/
+    envVars:
+      - key: RENDER
+        value: "true"
+      - key: DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yachay-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yachay-redis
+          type: redis
+          property: connectionString
+    buildCommand: |
+      echo "Ejecutando comandos de build..."
+      python manage.py collectstatic --noinput --clear
+    startCommand: |
+      python manage.py wait_for_db &&
+      python manage.py migrate &&
+      python manage.py init_data &&
+      gunicorn --bind 0.0.0.0:$PORT --workers 3 --timeout 120 quechua_backend.wsgi:application
+
+  # Servicio Redis
+  - type: redis
+    name: yachay-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+
+# Base de datos PostgreSQL
+databases:
+  - name: yachay-postgres
+    plan: starter
+    databaseName: yachay
+    user: yachay_user
