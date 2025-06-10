@@ -1,22 +1,23 @@
+# Asegurar que tienes todas las dependencias para Render
 Django==4.2.7
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-jazzmin==2.6.0
 python-dotenv==1.0.0
 
-# IA y Machine Learning - PyTorch se instala en Dockerfile
+# IA y Machine Learning
 ultralytics==8.0.200
 opencv-python-headless==4.8.1.78
 numpy==1.24.3
 
-# APIs externas - OpenAI ACTUALIZADO
+# APIs externas
 openai==1.66.3
 google-cloud-speech==2.21.0
 google-auth==2.23.4
 firebase-admin==6.2.0
 requests==2.31.0
 
-# Base de datos y producción
+# Base de datos y producción (CRÍTICO para Render)
 psycopg2-binary==2.9.7
 dj-database-url==2.1.0
 gunicorn==21.2.0
@@ -26,5 +27,5 @@ whitenoise==6.6.0
 redis==4.5.5
 django-redis==5.3.0
 
-# Procesamiento de imágenes y multimedia
+# Procesamiento de imágenes
 Pillow==10.1.0

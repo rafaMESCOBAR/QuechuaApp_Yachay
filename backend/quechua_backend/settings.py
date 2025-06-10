@@ -358,3 +358,95 @@ if not DEBUG:
     # Logging más detallado en producción
     LOGGING['handlers']['file']['level'] = 'ERROR'
     LOGGING['loggers']['django']['level'] = 'ERROR'
+
+
+# ===== CONFIGURACIÓN ESPECÍFICA PARA RENDER =====
+# (Agregar después de toda tu configuración existente)
+
+# Detectar si estamos en Render
+RENDER = os.getenv('RENDER', False)
+
+if RENDER:
+    print("🚀 Configurando para Render...")
+    
+    # ⚙️ OVERRIDE configuraciones para producción en Render
+    DEBUG = False
+    
+    # 🌐 Hosts específicos para Render
+    ALLOWED_HOSTS = [
+        '.onrender.com',
+        'yachay-backend.onrender.com',
+        'localhost',
+        '127.0.0.1'
+    ] + ALLOWED_HOSTS  # Mantener los existentes también
+    
+    # 🗄️ Database override para Render PostgreSQL
+    if os.getenv('DATABASE_URL'):
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=os.getenv('DATABASE_URL'),
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    
+    # 🔴 Redis override para Render
+    RENDER_REDIS_URL = os.getenv('REDIS_URL')
+    if RENDER_REDIS_URL:
+        CACHES = {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': RENDER_REDIS_URL,
+                'OPTIONS': {
+                    'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                }
+            }
+        }
+        # Usar Redis para sesiones también
+        SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+        SESSION_CACHE_ALIAS = 'default'
+    
+    # 📁 Static files para Render (mantener configuración existente pero asegurar)
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # 🔒 Configuración de seguridad para producción
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # 📊 Logging simplificado para Render (solo consola)
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
+        },
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'translations': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+        },
+    }
+    
+    print("✅ Configuración de Render aplicada correctamente")
