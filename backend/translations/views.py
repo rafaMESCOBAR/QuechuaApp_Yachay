@@ -218,7 +218,7 @@ class ObjectDetectionViewSet(viewsets.ViewSet):
 
             results.sort(key=lambda x: x['confidence'], reverse=True)
 
-            # ✅ CORRECCIÓN FINAL: Solo palabra principal al vocabulario
+            #  CORRECCIÓN FINAL: Solo palabra principal al vocabulario
             if results and request.user.is_authenticated:
                 # 1. IDENTIFICAR OBJETO PRINCIPAL (mayor confianza = lo que el usuario quiso detectar)
                 primary_object = results[0]
@@ -565,7 +565,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Se requiere una respuesta'}, 
                         status=status.HTTP_400_BAD_REQUEST)
             
-        # ✅ VERIFICACIÓN DE RESPUESTA MEJORADA POR TIPO DE EJERCICIO
+        #  VERIFICACIÓN DE RESPUESTA MEJORADA POR TIPO DE EJERCICIO
         is_correct = False
         
         try:
@@ -574,7 +574,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                 is_correct = True
                 
             elif exercise.type == 'matching':
-                # ✅ LÓGICA ESPECÍFICA PARA MATCHING
+                #  LÓGICA ESPECÍFICA PARA MATCHING
                 logger.info(f"🔍 Procesando ejercicio de matching")
                 
                 if '→' in answer:
@@ -606,7 +606,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Error interno al verificar respuesta'}, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        logger.info(f"✅ Resultado de verificación: {is_correct}")
+        logger.info(f" Resultado de verificación: {is_correct}")
         
         # Actualizar progreso del usuario
         progress, created = UserProgress.objects.get_or_create(
@@ -657,11 +657,11 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         is_recent_word = False
         is_minimally_practiced = False
 
-        # ✅ CORRECCIÓN CRÍTICA 1: Normalizar palabra antes de buscar/crear
+        #  CORRECCIÓN CRÍTICA 1: Normalizar palabra antes de buscar/crear
         normalized_quechua = exercise.object_translation.quechua.strip().lower()
 
         try:
-            # ✅ CORRECCIÓN 2: Buscar palabra normalizada
+            #  CORRECCIÓN 2: Buscar palabra normalizada
             vocab = UserVocabulary.objects.get(
                 user=request.user,
                 quechua_word=normalized_quechua  # ← NORMALIZADA
@@ -683,13 +683,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             
         except UserVocabulary.DoesNotExist:
             if mode == 'detection':
-                # ✅ SOLUCIÓN: Crear palabra automáticamente si no existe en detección
+                #  SOLUCIÓN: Crear palabra automáticamente si no existe en detección
                 logger.warning(f"⚠️ Palabra '{normalized_quechua}' no encontrada en vocabulario de detección")
                 logger.warning(f"⚠️ Creando palabra automáticamente para permitir continuar")
                 
                 # Obtener vocabulario actual para diagnóstico
                 user_vocab_words = list(UserVocabulary.objects.filter(user=request.user).values_list('quechua_word', flat=True))
-                logger.warning(f"📚 Vocabulario actual ({len(user_vocab_words)} palabras): {user_vocab_words[:5]}")  # Primeras 5 palabras
+                logger.warning(f" Vocabulario actual ({len(user_vocab_words)} palabras): {user_vocab_words[:5]}")  # Primeras 5 palabras
                 
                 # Crear la palabra automáticamente
                 vocab = UserVocabulary.objects.create(
@@ -722,7 +722,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                     }
                 )
                 
-                logger.info(f"✅ Palabra creada automáticamente en modo detección: '{normalized_quechua}'")
+                logger.info(f" Palabra creada automáticamente en modo detección: '{normalized_quechua}'")
                 
             else:
                 # EN PRÁCTICA: Crear palabra nueva normalmente
@@ -738,9 +738,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                 )
                 request.user.profile.add_word()
                 
-                logger.info(f"✅ Palabra creada en modo práctica: '{normalized_quechua}'")
+                logger.info(f" Palabra creada en modo práctica: '{normalized_quechua}'")
 
-        # ✅ CORRECCIÓN 4: Registrar actividad con palabra normalizada
+        #  CORRECCIÓN 4: Registrar actividad con palabra normalizada
         ActivityLog.objects.create(
             user=request.user,
             activity_type='exercise_completed',
@@ -1171,22 +1171,29 @@ def analyze_pronunciation(request):
         })
 
 def normalize_text(text):
-    """Normaliza el texto para comparación y considera equivalencias fonéticas quechuas"""
-    import unicodedata
-    text = (
-        unicodedata.normalize('NFD', text.lower().strip())
-        .encode('ascii', 'ignore')
-        .decode('ascii')
-    )
-    
-    # Equivalencias fonéticas quechuas
-    text = text.replace('kh', 'k')
-    text = text.replace('qh', 'k')
-    text = text.replace('q', 'k')
-    text = text.replace('j', 'h')
-    text = text.replace('c', 'k')
-    
-    return text
+   """Normaliza texto quechua chanka considerando equivalencias fonéticas reales"""
+   import unicodedata
+   
+   # Normalización básica
+   text = (
+       unicodedata.normalize('NFD', text.lower().strip())
+       .encode('ascii', 'ignore')
+       .decode('ascii')
+   )
+   
+   # Equivalencias fonéticas específicas del quechua chanka
+   # Ambos h y q suenan como "j"
+   text = text.replace('h', 'j')  # h → j (sonido real)
+   text = text.replace('q', 'j')  # q → j (sonido real)
+   
+   # Equivalencias de escritura común
+   text = text.replace('c', 'k')  # c → k (validado por documento académico)
+   text = text.replace('cc', 'kk') # doble c → doble k
+   
+   # Variaciones ortográficas
+   text = text.replace('y', 'i')   # y → i al final de palabra
+   
+   return text
 
 def levenshtein_distance(a, b):
     """Calcula la distancia de Levenshtein entre dos cadenas"""
@@ -1268,7 +1275,7 @@ def initialize_firebase():
                     credentials_dict = json.loads(firebase_json)
                     cred = credentials.Certificate(credentials_dict)
                     firebase_admin.initialize_app(cred)
-                    logger.info("✅ Firebase inicializado desde variable de entorno JSON")
+                    logger.info(" Firebase inicializado desde variable de entorno JSON")
                     return
                 except Exception as e:
                     logger.warning(f"⚠️ Error con credentials JSON de entorno: {e}")
@@ -1279,10 +1286,10 @@ def initialize_firebase():
                 try:
                     cred = credentials.Certificate(firebase_cred_path)
                     firebase_admin.initialize_app(cred)
-                    logger.info("✅ Firebase inicializado desde archivo local")
+                    logger.info(" Firebase inicializado desde archivo local")
                     return
                 except Exception as e:
-                    logger.warning(f"⚠️ Error con archivo local: {e}")
+                    logger.warning(f" Error con archivo local: {e}")
             
             # Si ningún método funciona, lanzar error específico
             raise ImproperlyConfigured(
@@ -1290,10 +1297,10 @@ def initialize_firebase():
                 "Configura FIREBASE_CREDENTIALS_JSON en las variables de entorno de Render."
             )
         else:
-            logger.info("✅ Firebase ya estaba inicializado")
+            logger.info(" Firebase ya estaba inicializado")
             
     except Exception as e:
-        logger.error(f"❌ Error en autenticación Firebase: {str(e)}", exc_info=True)
+        logger.error(f" Error en autenticación Firebase: {str(e)}", exc_info=True)
         raise ImproperlyConfigured(f"Error al inicializar Firebase: {str(e)}")
 
 # Intentar inicializar Firebase al cargar la aplicación
@@ -1825,7 +1832,7 @@ class ProgressViewSet(viewsets.ViewSet):
         level_progress = ((profile.total_words - current_threshold) / (next_threshold - current_threshold) 
                         if next_threshold > current_threshold else 1.0)
         
-        # ✅ CORRECCIÓN 1: Calcular exercises_completed y accuracy_rate (faltaban)
+        #  CORRECCIÓN 1: Calcular exercises_completed y accuracy_rate (faltaban)
         user_progress_records = UserProgress.objects.filter(user=user)
         total_exercises = user_progress_records.count()
         correct_exercises = user_progress_records.filter(correct=True).count()
@@ -1836,7 +1843,7 @@ class ProgressViewSet(viewsets.ViewSet):
             user=user
         ).order_by('-first_detected')[:10]
         
-        # ✅ CORRECCIÓN 2: Achievements con earned_at (estructura corregida)
+        #  CORRECCIÓN 2: Achievements con earned_at (estructura corregida)
         user_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
         achievements_data = []
         for ua in user_achievements:
@@ -1845,7 +1852,7 @@ class ProgressViewSet(viewsets.ViewSet):
                 'name': ua.achievement.name,
                 'description': ua.achievement.description,
                 'icon': ua.achievement.icon,
-                'earned_at': ua.earned_at.isoformat(),  # ✅ Campo crítico que faltaba
+                'earned_at': ua.earned_at.isoformat(),  #  Campo crítico que faltaba
                 'created_at': ua.achievement.created_at.isoformat() if hasattr(ua.achievement, 'created_at') else None
             })
         
@@ -1871,10 +1878,10 @@ class ProgressViewSet(viewsets.ViewSet):
                 date=today
             )
         
-        # ✅ CORRECCIÓN 3: Actividades de detección - usar 'detection_session' como en detect()
+        # CORRECCIÓN 3: Actividades de detección - usar 'detection_session' como en detect()
         detection_session_activities = ActivityLog.objects.filter(
             user=user,
-            activity_type='detection_session',  # ✅ Coincide con detect()
+            activity_type='detection_session',  #  Coincide con detect()
             mode='detection'
         )
         
@@ -1892,7 +1899,7 @@ class ProgressViewSet(viewsets.ViewSet):
             mode='practice'
         )
         
-        # ✅ CORRECCIÓN 4: Conteo basado en sesiones de detección reales
+        #  CORRECCIÓN 4: Conteo basado en sesiones de detección reales
         # Palabras detectadas: Solo de sesiones de detección (lo que el usuario realmente detectó)
         detection_words_set = set(detection_session_activities.values_list('word_learned', flat=True).distinct())
         
@@ -1910,16 +1917,16 @@ class ProgressViewSet(viewsets.ViewSet):
         real_total = UserVocabulary.objects.filter(user=user).count()
         calculated_total = detection_words + practice_words
         
-        # ✅ LOGGING MEJORADO para debug
-        logger.info(f"🔍 Progreso para usuario {user.username}:")
-        logger.info(f"  📸 Palabras detectadas (sesiones): {detection_words}")
-        logger.info(f"  📚 Palabras práctica exclusiva: {practice_words}")
-        logger.info(f"  🧮 Total calculado: {calculated_total}")
-        logger.info(f"  ✅ Total real en vocabulario: {real_total}")
+        #  LOGGING MEJORADO para debug
+        logger.info(f" Progreso para usuario {user.username}:")
+        logger.info(f" Palabras detectadas (sesiones): {detection_words}")
+        logger.info(f" Palabras práctica exclusiva: {practice_words}")
+        logger.info(f" Total calculado: {calculated_total}")
+        logger.info(f" Total real en vocabulario: {real_total}")
         
         # Auto-corrección si hay discrepancia
         if calculated_total != real_total:
-            logger.warning(f"⚠️ Discrepancia detectada: calculado={calculated_total}, real={real_total}")
+            logger.warning(f" Discrepancia detectada: calculado={calculated_total}, real={real_total}")
             
             # Estrategia de corrección: Usar vocabulario como fuente de verdad
             vocab_with_detection = UserVocabulary.objects.filter(user=user).annotate(
@@ -1945,7 +1952,7 @@ class ProgressViewSet(viewsets.ViewSet):
             needs_practice=Count('id', filter=Q(mastery_level=1))
         )
         
-        # ✅ CORRECCIÓN 5: Weekly activity simplificada (sin campo 'date')
+        #  CORRECCIÓN 5: Weekly activity simplificada (sin campo 'date')
         weekly_activity = []
         for i in range(7):
             date = timezone.now() - timedelta(days=i)
@@ -1959,7 +1966,7 @@ class ProgressViewSet(viewsets.ViewSet):
                 activity_type__in=['detection_session', 'exercise_completed']
             ).values('word_learned').distinct().count()
             
-            # ✅ Estructura simplificada como espera el frontend
+            # Estructura simplificada como espera el frontend
             day_data = {
                 'day': date.strftime('%a'),
                 'words': words_that_day  # Solo estos dos campos
@@ -1987,7 +1994,7 @@ class ProgressViewSet(viewsets.ViewSet):
                     'exercises_count': 0  # Compatible con frontend
                 })
         
-        # ✅ ESTRUCTURA FINAL COMPLETA - Con todos los campos que espera el frontend
+        #  ESTRUCTURA FINAL COMPLETA - Con todos los campos que espera el frontend
         progress_data = {
             'level': profile.current_level,
             'level_title': profile.get_level_title(),
@@ -1997,7 +2004,7 @@ class ProgressViewSet(viewsets.ViewSet):
             'words_to_next_level': words_to_next_level,
             'level_progress': level_progress * 100,
             
-            # ✅ CAMPOS AGREGADOS que faltaban:
+            #  CAMPOS AGREGADOS que faltaban:
             'exercises_completed': total_exercises,
             'accuracy_rate': accuracy_rate,
             
@@ -2007,9 +2014,9 @@ class ProgressViewSet(viewsets.ViewSet):
             
             # Datos adicionales
             'recent_words': UserVocabularySerializer(recent_words, many=True).data,
-            'achievements': achievements_data,  # ✅ Estructura manual corregida
+            'achievements': achievements_data,  #  Estructura manual corregida
             'daily_goal': DailyGoalSerializer(daily_goal).data,
-            'weekly_activity': weekly_activity,  # ✅ Sin campo 'date'
+            'weekly_activity': weekly_activity,  #  Sin campo 'date'
             'recent_activity': recent_activity,
             
             'stats_by_category': {
@@ -2025,8 +2032,8 @@ class ProgressViewSet(viewsets.ViewSet):
             }
         }
         
-        # ✅ LOG FINAL para verificación
-        logger.info(f"📊 Respuesta final: level={progress_data['level']}, "
+        #  LOG FINAL para verificación
+        logger.info(f" Respuesta final: level={progress_data['level']}, "
                 f"total_words={progress_data['total_words']}, "
                 f"detection_words={progress_data['detection_words']}, "
                 f"practice_words={progress_data['practice_words']}, "

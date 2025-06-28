@@ -24,15 +24,15 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
 ]
 
-# ✅ API Keys que deberás configurar en Render
+#  API Keys que deberás configurar en Render
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', 'your-google-client-id-here')
 GOOGLE_CLOUD_API_KEY = os.getenv('GOOGLE_CLOUD_API_KEY', '')
 
-# ✅ Firebase credentials para Render (como string JSON, no archivo)
+# Firebase credentials para Render (como string JSON, no archivo)
 FIREBASE_CREDENTIALS_JSON = os.getenv('FIREBASE_CREDENTIALS_JSON', '{}')
 
-# ✅ Validación silenciosa para evitar prints en producción
+#  Validación silenciosa para evitar prints en producción
 if DEBUG:
     print(f"OpenAI API Key configurada: {'Sí' if OPENAI_API_KEY else 'No'}")
     print(f"Google Client ID configurado: {'Sí' if GOOGLE_CLIENT_ID else 'No'}")
@@ -55,7 +55,7 @@ try:
 except (json.JSONDecodeError, FileNotFoundError):
     FIREBASE_CREDENTIALS = None
     if DEBUG:
-        print("⚠️ Firebase credentials no configuradas correctamente")
+        print("Firebase credentials no configuradas correctamente")
 
 # ===== APLICACIONES INSTALADAS =====
 INSTALLED_APPS = [
@@ -308,7 +308,7 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 # ===== CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS PARA RENDER =====
-# 🔧 SOLUCIÓN: Sin compresión en NINGÚN entorno para evitar errores .map
+#  SOLUCIÓN: Sin compresión en NINGÚN entorno para evitar errores .map
 STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
 # Configuración de WhiteNoise para ignorar archivos problemáticos
@@ -442,12 +442,12 @@ RENDER = os.getenv('RENDER', False)
 
 if RENDER:
     if DEBUG:
-        print("🚀 Configurando para Render...")
+        print("Configurando para Render...")
     
-    # ⚙️ OVERRIDE configuraciones para producción en Render
+    #  OVERRIDE configuraciones para producción en Render
     DEBUG = False
     
-    # 🌐 Hosts específicos para Render
+    #  Hosts específicos para Render
     ALLOWED_HOSTS = [
         '.onrender.com',
         'yachay-backend.onrender.com',
@@ -456,7 +456,7 @@ if RENDER:
         '127.0.0.1'
     ] + ALLOWED_HOSTS
     
-    # 🗄️ Database override para Render PostgreSQL
+    #  Database override para Render PostgreSQL
     if os.getenv('DATABASE_URL'):
         DATABASES = {
             'default': dj_database_url.config(
@@ -466,7 +466,7 @@ if RENDER:
             )
         }
     
-    # 🔴 Redis override para Render
+    # Redis override para Render
     RENDER_REDIS_URL = os.getenv('REDIS_URL')
     if RENDER_REDIS_URL:
         CACHES = {
@@ -489,12 +489,12 @@ if RENDER:
         SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
         SESSION_CACHE_ALIAS = 'default'
     
-    # 📁 Static files para Render - ✅ CORREGIDO: Sin compresión
+    #  Static files para Render -  CORREGIDO: Sin compresión
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     # 🔧 MANTENER sin compresión para evitar errores con archivos .map
     # STATICFILES_STORAGE ya está configurado arriba como StaticFilesStorage
     
-    # 🔒 Configuración de seguridad para producción
+    #  Configuración de seguridad para producción
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
@@ -504,7 +504,7 @@ if RENDER:
     SECURE_SSL_REDIRECT = True
     
     if DEBUG:
-        print("✅ Configuración de Render aplicada correctamente")
+        print(" Configuración de Render aplicada correctamente")
 
 # 🔧 CONFIGURACIONES DE RENDIMIENTO ADICIONALES
 if not DEBUG:
@@ -517,4 +517,150 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     CSRF_COOKIE_HTTPONLY = True
     
-     
+    # AGREGAR AL FINAL DE TU settings.py
+# ===============================================
+# 🚀 FIX INMEDIATO PARA PERFORMANCE LOCAL
+# ===============================================
+
+import socket
+import sys
+
+def redis_available():
+    """Verifica si Redis está disponible localmente"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(('localhost', 6379))
+        sock.close()
+        return result == 0
+    except:
+        return False
+
+def is_local_dev():
+    """Detecta si estamos en desarrollo local"""
+    return not os.getenv('RENDER') and 'runserver' in sys.argv
+
+# APLICAR OPTIMIZACIONES LOCALES
+if is_local_dev():
+    print("🔧 Aplicando optimizaciones de performance local...")
+    
+    # 1. CACHE OPTIMIZADO - La causa principal de lentitud
+    if not redis_available():
+        print("   ⚠️ Redis no disponible, usando cache en memoria optimizado")
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'LOCATION': 'yachay-local-cache',
+                'OPTIONS': {
+                    'MAX_ENTRIES': 10000,  # Más entradas que el default
+                    'CULL_FREQUENCY': 2,   # Menos aggressive cleanup
+                }
+            }
+        }
+        
+        # Override session para usar cache optimizado
+        SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+        SESSION_CACHE_ALIAS = 'default'
+    else:
+        print("   ✅ Redis disponible localmente")
+    
+    # 2. LOGGING MINIMALISTA - Reduce I/O
+    LOGGING['handlers']['console']['level'] = 'ERROR'
+    LOGGING['root']['level'] = 'ERROR'
+    
+    # Deshabilitar logging a archivo en desarrollo
+    if 'file' in LOGGING['handlers']:
+        del LOGGING['handlers']['file']
+        for logger in LOGGING['loggers'].values():
+            if 'file' in logger.get('handlers', []):
+                logger['handlers'] = [h for h in logger['handlers'] if h != 'file']
+    
+    # 3. JAZZMIN OPTIMIZADO LOCALMENTE
+    JAZZMIN_SETTINGS.update({
+        "navigation_expanded": False,  # Menos carga inicial
+        "related_modal_active": False,  # Sin modales pesados
+        "use_google_fonts_cdn": False,  # Sin requests externos
+        "custom_css": None,  # Sin CSS custom
+        "custom_js": None,   # Sin JS custom
+    })
+    
+    # 4. ADMIN OPTIMIZATIONS
+    # Estas se aplicarán en admin.py mediante esta variable
+    ADMIN_PERFORMANCE_MODE = True
+    
+    # 5. SQLITE OPTIMIZADO (si es lo que usas)
+    if 'sqlite3' in DATABASES['default']['ENGINE']:
+        print("   🔧 Optimizando SQLite para admin...")
+        DATABASES['default']['OPTIONS'] = {
+            'timeout': 20,
+            'isolation_level': None,  # Autocommit mode
+        }
+        # Sin persistent connections en SQLite (causa problemas)
+        DATABASES['default']['CONN_MAX_AGE'] = 0
+    
+    # 6. STATIC FILES SIN COMPRESIÓN
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    
+    # 7. MIDDLEWARE OPTIMIZADO
+    # Remover middlewares innecesarios en desarrollo
+    if 'whitenoise.middleware.WhiteNoiseMiddleware' in MIDDLEWARE:
+        # WhiteNoise no es necesario en desarrollo con runserver
+        MIDDLEWARE = [mw for mw in MIDDLEWARE if 'whitenoise' not in mw.lower()]
+    
+    print("   ✅ Optimizaciones locales aplicadas!")
+    print(f"   Cache backend: {CACHES['default']['BACKEND']}")
+    print(f"   Database: {DATABASES['default']['ENGINE']}")
+
+# ===============================================
+# 🎯 OPTIMIZACIÓN ESPECÍFICA PARA ADMIN
+# ===============================================
+
+# Detectar cuando se accede al admin y aplicar optimizaciones extra
+if is_local_dev() and any('/admin' in arg for arg in sys.argv):
+    print("🎯 Modo admin detectado - aplicando optimizaciones extra...")
+    
+    # Cache más agresivo para admin
+    if CACHES['default']['BACKEND'] == 'django.core.cache.backends.locmem.LocMemCache':
+        CACHES['default']['OPTIONS']['MAX_ENTRIES'] = 50000
+        CACHES['default']['TIMEOUT'] = 1800  # 30 minutos
+    
+    # Deshabilitar completamente ciertos logs pesados
+    LOGGING['loggers']['django.db.backends'] = {
+        'handlers': [],
+        'level': 'ERROR',
+        'propagate': False,
+    }
+
+# ===============================================
+# 🚨 MENSAJE DE DIAGNÓSTICO
+# ===============================================
+
+if is_local_dev() and DEBUG:
+    def print_performance_info():
+        print("\n" + "="*60)
+        print("🐛 DIAGNÓSTICO DE PERFORMANCE LOCAL")
+        print("="*60)
+        print(f"DEBUG: {DEBUG}")
+        print(f"Cache Backend: {CACHES['default']['BACKEND']}")
+        print(f"Database: {DATABASES['default']['ENGINE']}")
+        print(f"Redis Available: {redis_available()}")
+        
+        if not redis_available():
+            print("\n⚠️  PROBLEMA DETECTADO:")
+            print("   Redis no está disponible localmente")
+            print("   Esto hace que el cache falle y el admin sea lento")
+            print("\n💡 SOLUCIONES:")
+            print("   1. Instalar Redis: brew install redis (macOS)")
+            print("   2. O usar: DEBUG=False python manage.py runserver")
+            print("   3. Las optimizaciones actuales deberían mejorar la velocidad")
+        
+        print("="*60 + "\n")
+    
+    # Ejecutar diagnóstico después de que Django esté completamente cargado
+    import threading
+    threading.Timer(2.0, print_performance_info).start()
+    # VER LOGS TEMPORALMENTE
+if os.getenv('VERBOSE_LOGS'):
+    LOGGING['handlers']['console']['level'] = 'INFO'
+    LOGGING['root']['level'] = 'INFO'
+    print("🔍 Modo verbose logs activado")

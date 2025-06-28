@@ -37,7 +37,7 @@ class ObjectDetectionService:
                     # Inicializar solo una vez
                     cls._instance.confidence_threshold = 0.25
                     cls._instance.max_file_size = 10 * 1024 * 1024  # 10MB
-                    logger.info("🎯 ObjectDetectionService Singleton inicializado")
+                    logger.info(" ObjectDetectionService Singleton inicializado")
         return cls._instance
 
     @property
@@ -53,9 +53,9 @@ class ObjectDetectionService:
                     try:
                         # Usar YOLOv8s que es más preciso que YOLOv8n
                         self._model = YOLO('yolov8s.pt')
-                        logger.info("✅ Modelo YOLOv8s cargado exitosamente (SINGLETON - Solo una vez)")
+                        logger.info(" Modelo YOLOv8s cargado exitosamente (SINGLETON - Solo una vez)")
                     except Exception as e:
-                        logger.error(f"❌ Error al cargar el modelo YOLOv8s: {str(e)}")
+                        logger.error(f" Error al cargar el modelo YOLOv8s: {str(e)}")
                         raise RuntimeError(f"Error al cargar el modelo YOLOv8s: {str(e)}")
         return self._model
 
@@ -118,11 +118,11 @@ class ObjectDetectionService:
             filtered_detections.sort(key=lambda x: x['confidence'], reverse=True)
             
             # Log de resumen (menos verboso)
-            logger.info(f"🎯 Detección exitosa: {len(filtered_detections)} objetos encontrados")
+            logger.info(f" Detección exitosa: {len(filtered_detections)} objetos encontrados")
             return filtered_detections
             
         except Exception as e:
-            logger.error(f"❌ Error en la detección YOLOv8s: {str(e)}")
+            logger.error(f" Error en la detección YOLOv8s: {str(e)}")
             raise RuntimeError(f"Error en la detección: {str(e)}")
 
     @classmethod
